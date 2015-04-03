@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/KlonD90/node-tarantool-driver/issues"
   },
-  "homepage": "https://github.com/KlonD90/node-tarantool-driver"
+  "homepage": "https://github.com/KlonD90/node-tarantool-driver",
+  "dependencies": {
+    "msgpack5": "^2.0.0"
+  }
 }
