@@ -1,0 +1,24 @@
+{
+  "name": "tarantool-driver",
+  "version": "0.0.1",
+  "description": "Tarantool driver for 1.6",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/KlonD90/node-tarantool-driver.git"
+  },
+  "keywords": [
+    "tarantool",
+    "driver",
+    "db"
+  ],
+  "author": "KlonD90",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/KlonD90/node-tarantool-driver/issues"
+  },
+  "homepage": "https://github.com/KlonD90/node-tarantool-driver"
+}
