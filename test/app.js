@@ -7,6 +7,7 @@ var conn = new TarantoolConnection({port: 33013, host: '95.85.55.64'});
 conn.connect()
     .then(function(){
         console.log('resolve');
+        conn.ping();
     }, function(e){
         console.log('reject');
     })
