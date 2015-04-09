@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/KlonD90/node-tarantool-driver",
   "dependencies": {
+    "bitwise-xor": "0.0.0",
     "msgpack5": "^2.0.0",
     "underscore": "^1.8.3",
     "vow": "^0.4.9"
