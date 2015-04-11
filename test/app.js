@@ -1,26 +1,97 @@
 /**
  * Created by klond on 05.04.15.
  */
+var fs = require('fs');
+var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
+//var cp = require('child_process');
 
-var conn = new TarantoolConnection({port: 33013, host: '95.85.55.64'});
-conn.connect()
-    .then(function(){
-        console.log('resolve');
-        return conn.ping();
-    }, function(e){
-        console.log('reject');
-    })
-    .then(function(ss){
-        console.log(ss);
-        console.log('start request select')
-        return conn.select(512, 0, 1, 0, 'eq', [2]);
-    }, function(e){
-        console.log(e);
-    })
-    .then(function(ff){
-        console.log('select result');
-        console.log(ff);
-    }, function(e){
-        console.log('err on select', e)
-    })
+
+describe('Tarantool Connection tests', function(){
+	before(function(){
+//		cp.execFile('./box.lua');
+	});
+	var conn;
+	beforeEach(function(){
+		conn = new TarantoolConnection({port: 33013});
+	});
+	describe('connection test', function(){
+		it('connect', function(done){
+				conn.connect().then(function(){
+				done();
+			}, function(e){ throw 'not connected'; done();});
+		});
+		it('auth', function(done){
+			conn.connect().then(function(){
+				return conn.auth('test', 'test');
+			}, function(e){ throw 'not connected'; done();})
+			.then(function(){
+				done();
+			}, function(e){ throw 'not auth'; done();})
+		});
+	});
+	describe('requests', function(){
+		var insertTuple = [50, 10, 'my key', 30];
+		beforeEach(function(done){
+			conn.connect().then(function(){
+				return conn.auth('test', 'test');
+			}, function(e){ throw 'not connected'; done();})
+			.then(function(){
+				done();
+			}, function(e){ throw 'not auth'; done();})
+		});
+		it('replace', function(done){
+			conn.replace(512, insertTuple)
+			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}, function(e){done(e);});
+		});
+		it('simple select', function(done){
+			conn.select(512, 0, 1, 0, 'eq', [50])
+			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}, function(e){done(e);});
+		});
+		it('composite select', function(done){
+			conn.select(512, 1, 1, 0, 'eq', [10, 'my key'])
+			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}).catch(function(e){ done(e); });
+		});
+		it('delete', function(done){
+			conn.delete(512, 0, [50])
+			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}).catch(function(e){ done(e); });
+		});
+		it('insert', function(done){
+			conn.insert(512, insertTuple)
+			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}, function(e){done(e);});
+		});
+		it('update', function(done){
+			conn.update(512, 0, [50], [['+',3,10]])
+			.then(function(a){
+				assert.equal(a.length, 1);
+				assert.equal(a[0][3], insertTuple[3]+10);
+				done();
+			}).catch(function(e){ done(e) });
+		});
+	});
+});

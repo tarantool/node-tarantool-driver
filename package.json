@@ -26,5 +26,8 @@
     "msgpack": "^0.2.6",
     "underscore": "^1.8.3",
     "vow": "^0.4.9"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.4"
   }
 }
