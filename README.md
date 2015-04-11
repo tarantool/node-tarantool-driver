@@ -53,21 +53,8 @@ Auth with using chap-sha1(http://tarantool.org/doc/book/box/box_space.html). Abo
 
 **select(spaceId: Number, indexId: Number, limit: Number, iterator: Iterator, key: tuple) : Promise( Array of tuples)**
 
-Iterators: http://tarantool.org/doc/book/box/box_index.html
-```
-const IteratorsType = {
-	eq: 0,
-	req: 1,
-	all: 2,
-	lt: 3,
-	le: 4,
-	ge: 5,
-	gt: 6,
-	bitsAllSet: 7,
-	bitsAnySet: 8,
-	bitsAllNotSet: 9
-};
-```
+Iterators: http://tarantool.org/doc/book/box/box_index.html. Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
+
 It's just select. Promise resolve array of tuples.
 
 **delete(spaceId: Number, indexId: Number, key: tuple) : Promise(Array of tuples)**
