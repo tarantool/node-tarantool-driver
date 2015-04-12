@@ -79,3 +79,24 @@ Promise resolve a new tuple.
 So it's replace. More you can read here: http://tarantool.org/doc/book/box/box_space.html
 
 Promise resolve a new or replaced tuple.
+
+**destroy(interupt: Boolean) : Promise**
+
+If you call destroy with interupt true it will interupt all process and destroy socket connection without awaiting results. Else it's stub methods with promise reject for future call and await all results and then destroy connection.
+
+##Testing
+
+Now it's poor test just a win to win situation and some hacks before. Install all packages and tarantool on your machine then launch a test through:
+```
+$ ./test/box.lua
+```
+
+Then just a use **npm start** and it will use mocha and launch test.
+
+##Contributions
+
+It's ok you can do whatever you need.
+
+##ToDo
+
+Test **eval** and **call** methods.
