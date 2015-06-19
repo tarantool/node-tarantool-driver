@@ -51,7 +51,7 @@ Resolve if connected. Or reject if not.
 
 Auth with using chap-sha1(http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: http://tarantool.org/doc/book/box/authentication.html
 
-**select(spaceId: Number, indexId: Number, limit: Number, iterator: Iterator, key: tuple) : Promise( Array of tuples)**
+**select(spaceId: Number, indexId: Number, limit: Number, offset: Number, iterator: Iterator,  key: tuple) : Promise( Array of tuples)**
 
 Iterators: http://tarantool.org/doc/book/box/box_index.html. Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
 
