@@ -1,6 +1,6 @@
 {
   "name": "tarantool-driver",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Tarantool driver for 1.6",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
     "tarantool",
     "driver",
     "db",
-	"msgpack"
+    "msgpack"
   ],
   "author": "KlonD90",
   "license": "MIT",
@@ -24,7 +24,7 @@
   "homepage": "https://github.com/KlonD90/node-tarantool-driver",
   "dependencies": {
     "bitwise-xor": "0.0.0",
-    "msgpack": "^0.2.6",
+    "msgpack5": "^3.0.0",
     "underscore": "^1.8.3",
     "vow": "^0.4.9"
   },
