@@ -93,5 +93,18 @@ describe('Tarantool Connection tests', function(){
 				done();
 			}).catch(function(e){ done(e) });
 		});
+		it('a lot of insert', function(done){
+			var promises = [];
+			for (var i = 0; i <= 1000; i++) {
+				conn.insert(512, ['key' + i, i]);  // ok
+			}
+			Promise.all(promises)
+				.then(function(pr){
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				});
+		})
 	});
 });
