@@ -96,7 +96,7 @@ describe('Tarantool Connection tests', function(){
 		it('a lot of insert', function(done){
 			var promises = [];
 			for (var i = 0; i <= 1000; i++) {
-				conn.insert(512, ['key' + i, i]);  // ok
+				conn.insert(512, ['key' + i, i]);
 			}
 			Promise.all(promises)
 				.then(function(pr){
@@ -105,6 +105,15 @@ describe('Tarantool Connection tests', function(){
 				.catch(function(e){
 					done(e);
 				});
-		})
+		});
+		it('check errors', function(done){
+			conn.insert(512, ['key', 'key', 'key'])
+				.then(function(){
+					done(new Error('Right when need error'));
+				})
+				.catch(function(e){
+					done();
+				});
+		});
 	});
 });
