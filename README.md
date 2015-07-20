@@ -3,7 +3,7 @@ Node tarantool driver for 1.6 support Node.js v.0.10+ and IO.js.
 
 Based on https://github.com/mialinx/go-tarantool-1.6 and implements http://tarantool.org/doc/dev_guide/box-protocol.html, for more information you can read them or basic documentation at http://tarantool.org/doc/.
 
-For work with tarantool tuple i use node-msgpack(https://github.com/pgriess/node-msgpack) and array default transformation with this package.
+For work with tarantool tuple i use msgpack5(https://github.com/mcollina/msgpack5/) and array default transformation with this package.
 
 If you have a problem with connection it will be destroyed. You can subscribe on TarantoolConnection.socket.on('close') for retrieve information about closing connection or you can process rejected errors for you requests.
 
