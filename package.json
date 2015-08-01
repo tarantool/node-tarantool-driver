@@ -4,7 +4,7 @@
   "description": "Tarantool driver for 1.6",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "./node_modules/mocha/bin/mocha"
   },
   "repository": {
     "type": "git",

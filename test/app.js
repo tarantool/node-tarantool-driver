@@ -4,8 +4,6 @@
 var fs = require('fs');
 var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
-//var cp = require('child_process');
-
 
 describe('Tarantool Connection tests', function(){
 	before(function(){
