@@ -32,10 +32,19 @@ describe('Tarantool Connection tests', function(){
 	});
 	describe('requests', function(){
 		var insertTuple = [50, 10, 'my key', 30];
+		var conn;
 		before(function(done){
 			console.log('before call');
 			try{
-				Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),conn.delete(514, 0, [3]),conn.delete(514, 0, [4]	)])
+				conn = new TarantoolConnection({port: 33013, log: true});
+				conn.connect().then(function(){
+					return conn.auth('test', 'test');
+				}, function(e){ throw 'not connected'; done();})
+					.then(function(){
+						return Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
+							conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
+							conn.delete(512, 0, [999])]);
+					})
 					.then(function(){
 						return conn.call('clearaddmore');
 					})
@@ -44,19 +53,11 @@ describe('Tarantool Connection tests', function(){
 					})
 					.catch(function(e){
 						done(e);
-					})
+					});
 			}
 			catch(e){
 				console.log(e);
 			}
-		});
-		beforeEach(function(done){
-			conn.connect().then(function(){
-				return conn.auth('test', 'test');
-			}, function(e){ throw 'not connected'; done();})
-			.then(function(){
-				done();
-			}, function(e){ throw 'not auth'; done();})
 		});
 		it('replace', function(done){
 			conn.replace(512, insertTuple)
@@ -176,6 +177,67 @@ describe('Tarantool Connection tests', function(){
 					done(e);
 				})
 		});
-
+		it('get metadata space by name', function(done){
+			conn._getSpaceId('batched')
+				.then(function(v){
+					assert.equal(v, 514);
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				})
+		});
+		it('get metadata index by name', function(done){
+			conn._getIndexId(514, 'primary')
+				.then(function(v){
+					assert.equal(v, 0);
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				})
+		});
+		it('insert with space name', function(done){
+			conn.insert('test', [999, 999, 'fear'])
+				.then(function(v){
+					done();
+				})
+				.catch(done);
+		});
+		it('select with space name and index name', function(done){
+			conn.select('test', 'primary', 0, 0, conn.IteratorsType.all, [999])
+				.then(function(){
+					done();
+				})
+				.catch(done);
+		});
+		it('select with space name and index number', function(done){
+			conn.select('test', 0, 0, 0, 'eq', [999])
+				.then(function(){
+					done();
+				})
+				.catch(done);
+		});
+		it('select with space number and index name', function(done){
+			conn.select(512, 'primary', 0, 0, 'eq', [999])
+				.then(function(){
+					done();
+				})
+				.catch(done);
+		});
+		it('delete with name', function(done){
+			conn.delete('test', 'primary', [999])
+				.then(function(){
+					done();
+				})
+				.catch(done);
+		});
+		it('update with name', function(done){
+			conn.update('test', 'primary', [999], ['+', 1, 10])
+				.then(function(){
+					done();
+				})
+				.catch(done);
+		});
 	});
 });

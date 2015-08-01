@@ -52,30 +52,40 @@ Resolve if connected. Or reject if not.
 
 Auth with using chap-sha1(http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: http://tarantool.org/doc/book/box/authentication.html
 
-**select(spaceId: Number, indexId: Number, limit: Number, offset: Number, iterator: Iterator,  key: tuple) : Promise( Array of tuples)**
+**select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) : Promise( Array of tuples)**
 
 Iterators: http://tarantool.org/doc/book/box/box_index.html. Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
 
 It's just select. Promise resolve array of tuples.
 
-**delete(spaceId: Number, indexId: Number, key: tuple) : Promise(Array of tuples)**
+Some examples: 
+
+```
+conn.select(512, 0, 1, 0, 'eq', [50]);
+//same as
+conn.select('test', 'primary', 1, 0, 'eq', [50]);
+```
+
+You can use space name or index name instead if id but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
+
+**delete(spaceId: Number or String, indexId: Number or String, key: tuple) : Promise(Array of tuples)**
 
 Promise resolve an array of deleted tuples.
 
-**update(spaceId: Number, indexId: Number, key: tuple, ops) : Promise(Array of tuples)**
+**update(spaceId: Number or String, indexId: Number or String, key: tuple, ops) : Promise(Array of tuples)**
 
 Ops: http://tarantool.org/doc/book/box/box_space.html(search for update here).
 
 Promise resolve an array of updated tuples.
 
-**insert(spaceId: Number, tuple: tuple) : Promise(Tuple)**
+**insert(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
 So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_space.html
 
 Promise resolve a new tuple.
 
 
-**replace(spaceId: Number, tuple: tuple) : Promise(Tuple)**
+**replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
 So it's replace. More you can read here: http://tarantool.org/doc/book/box/box_space.html
 
