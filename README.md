@@ -134,8 +134,8 @@ Then just a use **npm test** and it will use mocha and launch test.
 
 ##Contributions
 
-It's ok you can do whatever you need. I add log options for some technical information it can be help for you.
+It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ##ToDo
 
-Test **eval** methods.
+Test **eval** methods and make benchmarks and improve performance.
