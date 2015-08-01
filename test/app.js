@@ -37,6 +37,9 @@ describe('Tarantool Connection tests', function(){
 			try{
 				Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),conn.delete(514, 0, [3]),conn.delete(514, 0, [4]	)])
 					.then(function(){
+						return conn.call('clearaddmore');
+					})
+					.then(function(){
 						done();
 					})
 					.catch(function(e){
@@ -100,6 +103,15 @@ describe('Tarantool Connection tests', function(){
 				done();
 			}, function(e){done(e);});
 		});
+		it('dup error', function(done){
+			conn.insert(512, insertTuple)
+			.then(function(a){
+				done(new Error('can insert'));
+			}, function(e){
+					assert(e instanceof Error);
+					done();
+				});
+		});
 		it('update', function(done){
 			conn.update(512, 0, [50], [['+',3,10]])
 			.then(function(a){
@@ -110,8 +122,8 @@ describe('Tarantool Connection tests', function(){
 		});
 		it('a lot of insert', function(done){
 			var promises = [];
-			for (var i = 0; i <= 1000; i++) {
-				conn.insert(512, ['key' + i, i]);
+			for (var i = 0; i <= 5000; i++) {
+				conn.insert(515, ['key' + i, i]);
 			}
 			Promise.all(promises)
 				.then(function(pr){

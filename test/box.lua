@@ -51,7 +51,8 @@ if not box.space.batched then
 end
 
 function batch (data)
-    for index, value in pairs(data) do
+    print(data)
+    for index,value in pairs(data) do
         box.space.batched:insert(value)
     end
 end
@@ -59,4 +60,20 @@ end
 function myget(id)
     val = box.space.batched:select{id}
     return val[1]
+end
+
+if not box.space.toaddmore then
+    local toaddmore = box.schema.space.create('toaddmore')
+    toaddmore:create_index('primary', {type = 'TREE', unique = true, parts = {1, 'STR'}})
+    box.schema.user.grant('test', 'read,write,execute', 'space', 'toaddmore')
+    box.schema.user.grant('test', 'read,write,execute', 'space', '_index')
+end
+
+function clearaddmore()
+    local values = box.space.toaddmore:select{}
+    for k,v in pairs(values) do
+        if v[1] then
+            box.space.toaddmore:delete{v[1]}
+        end
+    end
 end
