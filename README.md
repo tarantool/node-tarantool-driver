@@ -38,7 +38,8 @@ conn.connect()
 ```
 var defaultOptions = {
     host: 'localhost',
-    port: '3301'
+    port: '3301',
+    log: false
 };
 ```
 You can overrid default options with options.
@@ -123,7 +124,7 @@ Then just a use **npm test** and it will use mocha and launch test.
 
 ##Contributions
 
-It's ok you can do whatever you need.
+It's ok you can do whatever you need. I add log options for some technical information it can be help for you.
 
 ##ToDo
 
