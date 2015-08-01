@@ -34,7 +34,7 @@ describe('Tarantool Connection tests', function(){
 		before(function(done){
 			console.log('before call');
 			try{
-				conn = new TarantoolConnection({port: 33013, log: true});
+				conn = new TarantoolConnection({port: 33013});
 				conn.connect().then(function(){
 					return conn.auth('test', 'test');
 				}, function(e){ throw 'not connected'; done();})
