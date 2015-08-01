@@ -11,7 +11,7 @@ describe('Tarantool Connection tests', function(){
 	});
 	var conn;
 	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013, log: true});
+		conn = new TarantoolConnection({port: 33013});
 	});
 	describe('connection test', function(){
 		it('connect', function(done){
