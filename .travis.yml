@@ -14,3 +14,4 @@ before_script:
 script:
    - sudo apt-get -y install tarantool
    - ./test/box.lua
+   - npm test
