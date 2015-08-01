@@ -13,7 +13,7 @@ describe('Tarantool Connection tests', function(){
 	});
 	var conn;
 	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013});
+		conn = new TarantoolConnection({port: 33013, log: true});
 	});
 	describe('connection test', function(){
 		it('connect', function(done){
@@ -32,6 +32,21 @@ describe('Tarantool Connection tests', function(){
 	});
 	describe('requests', function(){
 		var insertTuple = [50, 10, 'my key', 30];
+		before(function(done){
+			console.log('before call');
+			try{
+				Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),conn.delete(514, 0, [3]),conn.delete(514, 0, [4]	)])
+					.then(function(){
+						done();
+					})
+					.catch(function(e){
+						done(e);
+					})
+			}
+			catch(e){
+				console.log(e);
+			}
+		});
 		beforeEach(function(done){
 			conn.connect().then(function(){
 				return conn.auth('test', 'test');
@@ -115,5 +130,40 @@ describe('Tarantool Connection tests', function(){
 					done();
 				});
 		});
+		it('call print', function(done){
+			conn.call('myprint', ['test'])
+				.then(function(){
+					done()
+				})
+				.catch(function(e){
+					console.log(e);
+					done(e);
+				})
+		});
+		it('call batch', function(done){
+			conn.call('batch', [[1], [2], [3]])
+				.then(function(){
+					done()
+				})
+				.catch(function(e){
+					console.log(e);
+					done(e);
+				})
+		});
+		it('call get', function(done){
+			conn.insert(514, [4])
+				.then(function() {
+					return conn.call('myget', 4)
+				})
+				.then(function(value){
+					console.log('value', value);
+					done()
+				})
+				.catch(function(e){
+					console.log(e);
+					done(e);
+				})
+		});
+
 	});
 });

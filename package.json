@@ -1,6 +1,6 @@
 {
   "name": "tarantool-driver",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Tarantool driver for 1.6",
   "main": "index.js",
   "scripts": {
@@ -25,8 +25,7 @@
   "dependencies": {
     "bitwise-xor": "0.0.0",
     "msgpack5": "^3.0.0",
-    "underscore": "^1.8.3",
-    "vow": "^0.4.9"
+    "underscore": "^1.8.3"
   },
   "devDependencies": {
     "mocha": "^2.2.4"

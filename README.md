@@ -1,5 +1,5 @@
 # node-tarantool-driver
-Node tarantool driver for 1.6 support Node.js v.0.10+ and IO.js.
+Node tarantool driver for 1.6 support Node.js v.0.12+ and IO.js.
 
 Based on https://github.com/mialinx/go-tarantool-1.6 and implements http://tarantool.org/doc/dev_guide/box-protocol.html, for more information you can read them or basic documentation at http://tarantool.org/doc/.
 
@@ -15,7 +15,7 @@ npm install --save tarantool-driver
 
 ##Usage example
 
-We use TarantoolConnection instance and connect before other operations. Methods call return promise(through vow(https://github.com/dfilatov/vow). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
+We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
 ```
 var TarantoolConnection = require('tarantool-driver');
 var conn = new TarantoolConnection({port: 3301});
@@ -80,6 +80,34 @@ So it's replace. More you can read here: http://tarantool.org/doc/book/box/box_s
 
 Promise resolve a new or replaced tuple.
 
+**call(functionName: String, args...) : Promise(Array or undefined)**
+
+Call function with arguments. You can find example at test.
+
+You can create function on tarantool side: 
+```
+function myget(id)
+    val = box.space.batched:select{id}
+    return val[1]
+end
+```
+
+And then use something like this:
+```
+conn.call('myget', 4)
+.then(function(value){
+    console.log(value);
+});
+```
+
+If you have a 2 arguments function just send a second arguments in this way:
+```
+conn.call('my2argumentsfunc', 'first', 'second arguments')
+```
+And etc like this.
+
+Because lua support a multiple return it's always return array or undefined.
+
 **destroy(interupt: Boolean) : Promise**
 
 If you call destroy with interupt true it will interupt all process and destroy socket connection without awaiting results. Else it's stub methods with promise reject for future call and await all results and then destroy connection.
@@ -91,7 +119,7 @@ Now it's poor test just a win to win situation and some hacks before. Install al
 $ ./test/box.lua
 ```
 
-Then just a use **npm start** and it will use mocha and launch test.
+Then just a use **npm test** and it will use mocha and launch test.
 
 ##Contributions
 
@@ -99,4 +127,4 @@ It's ok you can do whatever you need.
 
 ##ToDo
 
-Test **eval** and **call** methods.
+Test **eval** methods.
