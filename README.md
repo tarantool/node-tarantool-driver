@@ -77,7 +77,7 @@ Promise resolve an array of deleted tuples.
 
 **update(spaceId: Number or String, indexId: Number or String, key: tuple, ops) : Promise(Array of tuples)**
 
-Ops: http://tarantool.org/doc/book/box/box_space.html(search for update here).
+Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
 
 Promise resolve an array of updated tuples.
 
@@ -87,12 +87,14 @@ So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_sp
 
 Promise resolve a new tuple.
 
-**upsert(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
+**upsert(spaceId: Number or String, key: tuple, ops: array of operations, tuple: tuple) : Promise()**
 
-So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+About operation: https://github.com/tarantool/tarantool/issues/905
 
-Promise resolve a new tuple.
+Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
 
+Promise resolve nothing.   
+Knowing issues if it cannot be updated by your ops it wouldn't return error just only at tarantool side but not at protocol. See https://github.com/tarantool/tarantool/issues/966
 
 **replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
@@ -144,6 +146,12 @@ Then just a use **npm test** and it will use mocha and launch test.
 ##Contributions
 
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
+
+##Changelog
+
+###0.3.0
+Add upsert operation.  
+Key is now can be just a number.
 
 ##ToDo
 

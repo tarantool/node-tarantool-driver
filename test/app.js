@@ -242,13 +242,14 @@ describe('Tarantool Connection tests', function(){
 		var conn;
 		before(function(done){
 			try{
-				conn = new TarantoolConnection({port: 33013, log: true});
+				conn = new TarantoolConnection({port: 33013});
 				conn.connect().then(function(){
 					return conn.auth('test', 'test');
 				}, function(e){ throw 'not connected'; done();})
 					.then(function(){
 						return Promise.all([
-							conn.delete('upstest', 'primary', 1)
+							conn.delete('upstest', 'primary', 1),
+							conn.delete('upstest', 'primary', 2)
 						]);
 					})
 					.then(function(){
@@ -262,16 +263,38 @@ describe('Tarantool Connection tests', function(){
 				console.log(e);
 			}
 		});
-		it('try', function(done){
-			conn.upsert(517, [1], [['+', 3, 3]], [1, 2, 3])
-				.then(function(tuple){
-					assert.deepEqual(tuple, [1, 2, 3]);
+		it('insert', function(done){
+			conn.upsert('upstest', 1, [['+', 3, 3]], [1, 2, 3])
+				.then(function() {
+					return conn.select('upstest', 'primary', 1, 0, 'eq', 1);
+				})
+				.then(function(tuples){
+					assert.equal(tuples.length, 1);
+					assert.deepEqual(tuples[0], [1, 2, 3]);
 					done();
 				})
 
 				.catch(function(e){
 					done(e);
 				})
-		})
+		});
+		it('update', function(done){
+			conn.upsert('upstest', 2, [['+', 2, 2]], [2, 4, 3])
+				.then(function(){
+					return conn.upsert('upstest', 2, [['+', 2, 2]], [2, 4, 3]);
+				})
+				.then(function() {
+					return conn.select('upstest', 'primary', 1, 0, 'eq', 2)	;
+				})
+				.then(function(tuples){
+					assert.equal(tuples.length, 1);
+					assert.deepEqual(tuples[0], [2, 4, 5]);
+					done();
+				})
+
+				.catch(function(e){
+					done(e);
+				})
+		});
 	});
 });
