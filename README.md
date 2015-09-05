@@ -87,6 +87,12 @@ So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_sp
 
 Promise resolve a new tuple.
 
+**upsert(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
+
+So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+
+Promise resolve a new tuple.
+
 
 **replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 

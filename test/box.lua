@@ -69,6 +69,12 @@ if not box.space.toaddmore then
     box.schema.user.grant('test', 'read,write,execute', 'space', '_index')
 end
 
+if not box.space.upstest then
+    local s = box.schema.space.create('upstest')
+    s:create_index('primary', {type = 'TREE', unique = true, parts = {1, 'NUM'}})
+    box.schema.user.grant('test', 'read,write,execute', 'space', 'upstest')
+end
+
 function clearaddmore()
     local values = box.space.toaddmore:select{}
     for k,v in pairs(values) do

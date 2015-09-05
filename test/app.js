@@ -238,4 +238,40 @@ describe('Tarantool Connection tests', function(){
 				.catch(done);
 		});
 	});
+	describe('upsert', function(){
+		var conn;
+		before(function(done){
+			try{
+				conn = new TarantoolConnection({port: 33013, log: true});
+				conn.connect().then(function(){
+					return conn.auth('test', 'test');
+				}, function(e){ throw 'not connected'; done();})
+					.then(function(){
+						return Promise.all([
+							conn.delete('upstest', 'primary', 1)
+						]);
+					})
+					.then(function(){
+						done();
+					})
+					.catch(function(e){
+						done(e);
+					});
+			}
+			catch(e){
+				console.log(e);
+			}
+		});
+		it('try', function(done){
+			conn.upsert(517, [1], [['+', 3, 3]], [1, 2, 3])
+				.then(function(tuple){
+					assert.deepEqual(tuple, [1, 2, 3]);
+					done();
+				})
+
+				.catch(function(e){
+					done(e);
+				})
+		})
+	});
 });
