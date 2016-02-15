@@ -4,6 +4,7 @@
 var fs = require('fs');
 var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
+var mlite = require('msgpack-lite');
 
 describe('Tarantool Connection tests', function(){
 	before(function(){
@@ -167,7 +168,6 @@ describe('Tarantool Connection tests', function(){
 					return conn.call('myget', 4)
 				})
 				.then(function(value){
-					console.log('value', value);
 					done()
 				})
 				.catch(function(e){
@@ -295,6 +295,37 @@ describe('Tarantool Connection tests', function(){
 				.catch(function(e){
 					done(e);
 				})
+		});
+	});
+	describe('connection test with custom msgpack implementation', function(){
+		var customConn;
+		beforeEach(function(){
+			customConn = new TarantoolConnection(
+				{
+					port: 33013,
+					msgpack: {
+						encode: function(obj){
+							return mlite.encode(obj);
+						},
+						decode: function(buf){
+							return mlite.decode(buf);
+						}
+					}
+				}
+			);
+		});
+		it('connect', function(done){
+			customConn.connect().then(function(){
+				done();
+			}, function(e){ throw 'not connected'; done();});
+		});
+		it('auth', function(done){
+			customConn.connect().then(function(){
+				return customConn.auth('test', 'test');
+			}, function(e){ throw 'not connected'; done();})
+				.then(function(){
+					done();
+				}, function(e){ throw 'not auth'; done();})
 		});
 	});
 });

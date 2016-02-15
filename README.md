@@ -35,6 +35,29 @@ conn.connect()
 });
 ```
 
+
+##Msgpack implentation
+
+You can yse any implementation that can be duck typing with next interface:
+
+```
+
+//msgpack implementation example
+/*
+    @interface
+    decode: (Buffer buf)
+    encode: (Object obj)
+ */
+var exampleCustomMsgpack = {
+    encode: function(obj){
+        return yourmsgpack.encode(obj);
+    },
+    decode: function(buf){
+        return yourmsgpack.decode(obj);
+    }
+};
+```
+
 ##API
 
 **class TarantoolConnection(options)**
@@ -42,7 +65,8 @@ conn.connect()
 var defaultOptions = {
     host: 'localhost',
     port: '3301',
-    log: false
+    log: false,
+	msgpack: require('msgpack-lite')
 };
 ```
 You can overrid default options with options.
@@ -89,12 +113,11 @@ Promise resolve a new tuple.
 
 **upsert(spaceId: Number or String, key: tuple, ops: array of operations, tuple: tuple) : Promise()**
 
-About operation: https://github.com/tarantool/tarantool/issues/905
+About operation: http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert
 
 Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
 
 Promise resolve nothing.   
-Knowing issues if it cannot be updated by your ops it wouldn't return error just only at tarantool side but not at protocol. See https://github.com/tarantool/tarantool/issues/966
 
 **replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
@@ -148,6 +171,12 @@ Then just a use **npm test** and it will use mocha and launch test.
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ##Changelog
+
+###0.4.0
+
+Change msgpack5 to msgpack-lite(thx to @arusakov).  
+Add msgpack as option for connection.   
+Bump msgpack5 for work at new version.
 
 ###0.3.0
 Add upsert operation.  
