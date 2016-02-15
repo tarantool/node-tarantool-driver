@@ -172,6 +172,10 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ##Changelog
 
+###0.4.1
+
+Add clear schema cache on change schema id
+
 ###0.4.0
 
 Change msgpack5 to msgpack-lite(thx to @arusakov).  
