@@ -4,7 +4,8 @@
   "description": "Tarantool driver for 1.6",
   "main": "index.js",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha -t 5000"
+    "lint": "eslint ./lib ./test",
+    "test": "mocha -t 5000"
   },
   "repository": {
     "type": "git",
@@ -30,6 +31,7 @@
   },
   "devDependencies": {
     "benchmark": "^2.1.0",
+    "eslint": "^2.5.3",
     "mocha": "^2.2.4"
   }
 }

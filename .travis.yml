@@ -18,4 +18,5 @@ script:
    - sudo apt-get -y install tarantool
    - ./test/box.lua &
    - sleep 2
+   - npm run lint
    - npm test

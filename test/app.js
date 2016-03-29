@@ -1,6 +1,10 @@
 /**
  * Created by klond on 05.04.15.
  */
+
+/*eslint-env mocha */
+/* global Promise */
+
 var fs = require('fs');
 var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
@@ -18,27 +22,29 @@ describe('Tarantool Connection tests', function(){
 		it('connect', function(done){
 				conn.connect().then(function(){
 				done();
-			}, function(e){ throw 'not connected'; done();});
+			}, function(e){ throw 'not connected'; });
 		});
 		it('auth', function(done){
 			conn.connect().then(function(){
 				return conn.auth('test', 'test');
-			}, function(e){ throw 'not connected'; done();})
+			}, function(e){ throw 'not connected'; })
 			.then(function(){
 				done();
-			}, function(e){ throw 'not auth'; done();})
+			}, function(e){ throw 'not auth'; });
 		});
 	});
 	describe('requests', function(){
 		var insertTuple = [50, 10, 'my key', 30];
+		/*eslint-disable no-shadow */
 		var conn;
+		/*eslint-enable no-shadow */
 		before(function(done){
 			console.log('before call');
 			try{
 				conn = new TarantoolConnection({port: 33013});
 				conn.connect().then(function(){
 					return conn.auth('test', 'test');
-				}, function(e){ throw 'not connected'; done();})
+				}, function(e){ throw 'not connected';})
 					.then(function(){
 						return Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
 							conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
@@ -118,7 +124,7 @@ describe('Tarantool Connection tests', function(){
 				assert.equal(a.length, 1);
 				assert.equal(a[0][3], insertTuple[3]+10);
 				done();
-			}).catch(function(e){ done(e) });
+			}).catch(function(e){ done(e); });
 		});
 		it('a lot of insert', function(done){
 			var promises = [];
@@ -145,35 +151,35 @@ describe('Tarantool Connection tests', function(){
 		it('call print', function(done){
 			conn.call('myprint', ['test'])
 				.then(function(){
-					done()
+					done();
 				})
 				.catch(function(e){
 					console.log(e);
 					done(e);
-				})
+				});
 		});
 		it('call batch', function(done){
 			conn.call('batch', [[1], [2], [3]])
 				.then(function(){
-					done()
+					done();
 				})
 				.catch(function(e){
 					console.log(e);
 					done(e);
-				})
+				});
 		});
 		it('call get', function(done){
 			conn.insert(514, [4])
 				.then(function() {
-					return conn.call('myget', 4)
+					return conn.call('myget', 4);
 				})
 				.then(function(value){
-					done()
+					done();
 				})
 				.catch(function(e){
 					console.log(e);
 					done(e);
-				})
+				});
 		});
 		it('get metadata space by name', function(done){
 			conn._getSpaceId('batched')
@@ -183,7 +189,7 @@ describe('Tarantool Connection tests', function(){
 				})
 				.catch(function(e){
 					done(e);
-				})
+				});
 		});
 		it('get metadata index by name', function(done){
 			conn._getIndexId(514, 'primary')
@@ -193,7 +199,7 @@ describe('Tarantool Connection tests', function(){
 				})
 				.catch(function(e){
 					done(e);
-				})
+				});
 		});
 		it('insert with space name', function(done){
 			conn.insert('test', [999, 999, 'fear'])
@@ -239,13 +245,15 @@ describe('Tarantool Connection tests', function(){
 		});
 	});
 	describe('upsert', function(){
+		/*eslint-disable no-shadow */
 		var conn;
+		/*eslint-enable no-shadow */
 		before(function(done){
 			try{
 				conn = new TarantoolConnection({port: 33013});
 				conn.connect().then(function(){
 					return conn.auth('test', 'test');
-				}, function(e){ throw 'not connected'; done();})
+				}, function(e){ throw 'not connected'; })
 					.then(function(){
 						return Promise.all([
 							conn.delete('upstest', 'primary', 1),
@@ -276,7 +284,7 @@ describe('Tarantool Connection tests', function(){
 
 				.catch(function(e){
 					done(e);
-				})
+				});
 		});
 		it('update', function(done){
 			conn.upsert('upstest', 2, [['+', 2, 2]], [2, 4, 3])
@@ -294,7 +302,7 @@ describe('Tarantool Connection tests', function(){
 
 				.catch(function(e){
 					done(e);
-				})
+				});
 		});
 	});
 	describe('connection test with custom msgpack implementation', function(){
@@ -317,15 +325,15 @@ describe('Tarantool Connection tests', function(){
 		it('connect', function(done){
 			customConn.connect().then(function(){
 				done();
-			}, function(e){ throw 'not connected'; done();});
+			}, function(e){ throw 'not connected'; });
 		});
 		it('auth', function(done){
 			customConn.connect().then(function(){
 				return customConn.auth('test', 'test');
-			}, function(e){ throw 'not connected'; done();})
+			}, function(e){ throw 'not connected'; })
 				.then(function(){
 					done();
-				}, function(e){ throw 'not auth'; done();})
+				}, function(e){ throw 'not auth'; });
 		});
 	});
 });
