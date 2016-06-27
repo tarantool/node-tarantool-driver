@@ -5,6 +5,7 @@ node_js:
   - "stable"
   - "4.1"
   - "4.0"
+  - "5.5"
 cache: false
 
 before_script:

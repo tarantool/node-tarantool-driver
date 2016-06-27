@@ -174,6 +174,10 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ##Changelog
 
+###1.0.0
+
+Fix test for call changes and remove unuse upsert parameter (critical change API for upsert)
+
 ###0.4.1
 
 Add clear schema cache on change schema id
