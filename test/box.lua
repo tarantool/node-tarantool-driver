@@ -83,3 +83,25 @@ function clearaddmore()
         end
     end
 end
+
+if not box.schema.func.exists('clearaddmore') then
+  box.schema.func.create('clearaddmore')
+  box.schema.user.grant('test', 'execute', 'function', 'clearaddmore')
+end
+if not box.schema.func.exists('myget') then
+  box.schema.func.create('myget')
+  box.schema.user.grant('test', 'execute', 'function', 'myget')
+end
+if not box.schema.func.exists('batch') then
+  box.schema.func.create('batch')
+  box.schema.user.grant('test', 'execute', 'function', 'batch')
+end
+if not box.schema.func.exists('myprint') then
+  box.schema.func.create('myprint')
+  box.schema.user.grant('test', 'execute', 'function', 'myprint')
+end
+if not box.schema.func.exists('test_delete') then
+  box.schema.func.create('test_delete')
+  box.schema.user.grant('test', 'execute', 'function', 'test_delete')
+end
+
