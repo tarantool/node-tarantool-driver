@@ -113,7 +113,7 @@ So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_sp
 
 Promise resolve a new tuple.
 
-**upsert(spaceId: Number or String, key: tuple, ops: array of operations, tuple: tuple) : Promise()**
+**upsert(spaceId: Number or String, ops: array of operations, tuple: tuple) : Promise()**
 
 About operation: http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert
 
