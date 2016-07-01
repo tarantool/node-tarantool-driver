@@ -68,7 +68,8 @@ var defaultOptions = {
     host: 'localhost',
     port: '3301',
     log: false,
-	msgpack: require('msgpack-lite')
+	  msgpack: require('msgpack-lite'),
+    timeout: 3000
 };
 ```
 You can overrid default options with options.
