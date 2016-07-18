@@ -6,12 +6,36 @@ var tConn = new tDriver({});
 tConn.connect()
 .then(function(){
   var suite = new Benchmark.Suite;
+  suite.add('paralell 5000', {defer: true, fn: function(defer){
+    try{
+    var promises = [];
+    for (let l=0;l<5000;l++)
+      promises.push(
+        tConn.select(512, 0, 1, 0, 'eq', ['test'])
+          .then(function(){
+            console.log('l', l);
+            return l;
+          })
+      );
+    var chain = Promise.all(promises)
+
+
+    chain.then(function(){ defer.resolve() })
+    .catch(function(e){
+      defer.reject(e);
+      console.error(e, e.stack);
+    });
+    } catch(e){
+      defer.reject(e);
+      console.error(e, e.stack);
+    }
+  }});
   suite.add('sequence', {defer: true, fn: function(defer){
-    var chain = Promise.resolve();
+    var chain = promise.resolve();
     for (var i=0;i<5000;i++)
     {
       chain = chain.then(function(){
-        return tConn.select(512, 0, 1, 0, 'eq', ['test']);
+        return tconn.select(512, 0, 1, 0, 'eq', ['test']);
       });
     }
     chain.then(function(){ defer.resolve();});
