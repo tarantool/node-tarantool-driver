@@ -16,25 +16,51 @@ tConn.connect()
     }
     chain.then(function(){ defer.resolve();});
   }});
-  suite.add('paralel', {defer: true, fn: function(defer){
+  suite.add('paralel by 10', {defer: true, fn: function(defer){
     var chain = Promise.resolve();
-    var promises = [];
-    for (var i=0;i<5000;i++)
+    try{
+    for (var i=0;i<500;i++)
     {
-      if (i%10== 0)
-      {
-        let prom = promises;
-        chain = chain.then(function(){ return Promise.all(prom) });
-        promises = [];
-      }
-      promises.push(
-        tConn.select(512, 0, 1, 0, 'eq', ['test'])
-      );
+        chain = chain.then(function(){
+          var promises = [];
+          for (var l=0;l<10;l++)
+          promises.push(
+            tConn.select(512, 0, 1, 0, 'eq', ['test'])
+          );
+          return Promise.all(promises)
+        });
     }
 
-    let prom = promises;
-    chain = chain.then(function(){ return Promise.all(prom) });
-    chain.then(function(){ defer.resolve() });
+    chain.then(function(){ defer.resolve() })
+    .catch(function(e){
+      console.error(e, e.stack);
+    });
+    } catch(e){
+      console.error(e, e.stack);
+    }
+  }});
+  suite.add('paralel by 50', {defer: true, fn: function(defer){
+    var chain = Promise.resolve();
+    try{
+    for (var i=0;i<100;i++)
+    {
+        chain = chain.then(function(){
+          var promises = [];
+          for (var l=0;l<50;l++)
+          promises.push(
+            tConn.select(512, 0, 1, 0, 'eq', ['test'])
+          );
+          return Promise.all(promises)
+        });
+    }
+
+    chain.then(function(){ defer.resolve() })
+    .catch(function(e){
+      console.error(e, e.stack);
+    });
+    } catch(e){
+      console.error(e, e.stack);
+    }
   }});
   suite
     .on('cycle', function(event) {
