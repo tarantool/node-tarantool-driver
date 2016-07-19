@@ -8,6 +8,22 @@ var tConn = new tDriver({});
 Promise.all([tConn.connect(), oldConn.connect()])
 .then(function(){
   var suite = new Benchmark.Suite;
+  suite.add('sequence select cb', {defer: true, fn: function(defer){
+    var c = 0;
+    try{
+    var goCycle = function(){
+      c++;
+      if (c>5000)
+        defer.resolve();
+      else
+        tConn.selectCb(512, 0, 1, 0, 'eq', ['test'], goCycle, console.error);
+
+    }
+    goCycle();
+    } catch(e){
+      console.error(e, e.stack);
+    }
+  }});
   suite.add('paralell 5000', {defer: true, fn: function(defer){
     try{
     var promises = [];
