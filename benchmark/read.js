@@ -35,7 +35,8 @@ Promise.all([tConn.connect(), oldConn.connect()])
   }});
   suite.add('counter', {defer: true, fn: function(defer){
     var chain = tConn.select('counter', 'primary', 1000000, 0, 'all',[]);
-    chain.then(function(){ defer.resolve();});
+    chain.then(function(data){ defer.resolve();})
+    .catch(console.error);
   }});
   suite.add('sequence', {defer: true, fn: function(defer){
     var chain = Promise.resolve();
