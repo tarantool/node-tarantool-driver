@@ -1,11 +1,18 @@
 'use strict'
 var Benchmark = require('benchmark');
+var fs = require('fs');
 
 var tDriver = require('../lib/connection.js');
-var oldDriver = require('../../old_tnt/lib/connection.js');
-var oldConn = new oldDriver({port: 3301});
+var promises = [];
+if (fs.existsSync('../../old_tnt/lib/connection.js')){
+	var oldDriver = require('../../old_tnt/lib/connection.js');
+	var oldConn = new oldDriver({port: 3301});
+	promises.push(oldConn.connect());
+}
+
 var tConn = new tDriver({});
-Promise.all([tConn.connect(), oldConn.connect()])
+promises.push(tConn.connect());
+Promise.all(promises)
 .then(function(){
   var suite = new Benchmark.Suite;
   suite.add('sequence select cb', {defer: true, fn: function(defer){
@@ -50,7 +57,7 @@ Promise.all([tConn.connect(), oldConn.connect()])
     }
   }});
   suite.add('counter', {defer: true, fn: function(defer){
-    var chain = tConn.select('counter', 'primary', 1000000, 0, 'all',[]);
+    var chain = tConn.select(512, 0, 1000000, 0, 'all',[]);
     chain.then(function(data){ defer.resolve();})
     .catch(console.error);
   }});
@@ -110,6 +117,8 @@ Promise.all([tConn.connect(), oldConn.connect()])
       console.error(e, e.stack);
     }
   }});
+  if (oldDriver)
+  {
   suite.add('old paralell 5000', {defer: true, fn: function(defer){
     try{
     var promises = [];
@@ -195,6 +204,7 @@ Promise.all([tConn.connect(), oldConn.connect()])
       console.error(e, e.stack);
     }
   }});
+  }
   suite
     .on('cycle', function(event) {
       console.log(String(event.target));
