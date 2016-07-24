@@ -11,7 +11,7 @@ var timerObject = new NanoTimer();
 conn.connect().then(function(){
     setInterval(function(){
         timerObject.time(function(callback){
-            conn.select(512, 0, 1, 0, 'eq', ['test']).then(function(results){
+            conn.select('space17', 'primary', 1, 0, 'eq', ['C', 'C']).then(function(results){
                 callback();
             }).catch(function(error){
                 console.log(error);
