@@ -57,7 +57,7 @@ Promise.all(promises)
     }
   }});
   suite.add('counter', {defer: true, fn: function(defer){
-    var chain = tConn.select(512, 0, 1000000, 0, 'all',[]);
+    var chain = tConn.select('counter', 'primary', 1000000, 0, 'all',[]);
     chain.then(function(data){ defer.resolve();})
     .catch(console.error);
   }});
