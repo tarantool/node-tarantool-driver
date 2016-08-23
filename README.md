@@ -2,197 +2,222 @@
 
 [![Build Status](https://travis-ci.org/KlonD90/node-tarantool-driver.svg)](https://travis-ci.org/KlonD90/node-tarantool-driver)
 
-Node tarantool driver for 1.6 support Node.js v.0.12+ and IO.js.
+This project is an effort to create a blazing fast Node.js [Tarantool](http://tarantool.org/) driver comparable to (or even faster than) the drivers for other languages, such as [Python](https://github.com/tarantool/tarantool-python), [Java](https://github.com/tarantool/tarantool-java), [Ruby](https://github.com/tarantool/tarantool-ruby) and [Go](https://github.com/tarantool/go-tarantool). Benchmarks are coming soon...
 
-Based on https://github.com/mialinx/go-tarantool-1.6 and implements http://tarantool.org/doc/dev_guide/box-protocol.html, for more information you can read them or basic documentation at http://tarantool.org/doc/.
+Supports Tarantool >= 1.6, Node.js >= 0.12 (or IO.js).
 
-For work with tarantool tuple i use msgpack-lite and array default transformation with this package.
+Initially based on [Go Tarantool driver](https://github.com/mialinx/go-tarantool-1.6). Implements [Tarantool IProto Protocol](http://tarantool.org/doc/dev_guide/box-protocol.html). See [Tarantul docs](http://tarantool.org/doc/) for more info.
 
-If you have a problem with connection it will be destroyed. You can subscribe on TarantoolConnection.socket.on('close') for retrieve information about closing connection or you can process rejected errors for you requests.
+Tuples are handled using [`msgpack-lite`](https://github.com/kawanet/msgpack-lite).
 
-##Install
+## Install
 
 ```
 npm install --save tarantool-driver
 ```
 
-##Usage example
+## Usage example
 
-We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
-```
+Create a `TarantoolConnection` instance and wait for it to `.connect()`. After that you can call any methods directly on the connection. Available methods: `select`, `update`, `replace`, `insert`, `delete`, `auth`, `destroy`. All methods return [Promise](https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise)s.
+
+```js
 var TarantoolConnection = require('tarantool-driver');
 var conn = new TarantoolConnection({port: 3301});
+
 conn.connect()
 .then(function(){
-  //auth for login, password
-  return conn.auth('test', 'test');
+  // Connection established. Authenticate user
+  return conn.auth('login', 'password');
 }).then(function(){
-  // select arguments space_id, index_id, limit, offset, iterator, key
+  // `select` arguments: space_id, index_id, limit, offset, iterator, key
   return conn.select(512, 0, 1, 0, 'eq', [50]);
 })
 .then(funtion(results){
-  doSomeThingWithResults(results);
+  console.log(results);
 });
 ```
 
-
-##Msgpack implentation
-
-You can use any implementation that can be duck typing with next interface:
-
-```
-
-//msgpack implementation example
-/*
-    @interface
-    decode: (Buffer buf)
-    encode: (Object obj)
- */
-var exampleCustomMsgpack = {
-    encode: function(obj){
-        return yourmsgpack.encode(obj);
-    },
-    decode: function(buf){
-        return yourmsgpack.decode(obj);
-    }
-};
-```
-
-By default use msgpack-lite package.
-
-##API
+## API
 
 **class TarantoolConnection(options)**
-```
+
+```js
 var defaultOptions = {
-    host: 'localhost',
-    port: '3301',
-    log: false,
-	  msgpack: require('msgpack-lite'),
-    timeout: 3000
+  host: 'localhost',
+  port: '3301',
+  log: false,
+  msgpack: require('msgpack-lite'),
+  timeout: 3000
 };
 ```
-You can overrid default options with options.
+
+You can override the default options with your custom options.
 
 **connect() : Promise**
 
-Resolve if connected. Or reject if not.
+Resolves when the connection has been established. Rejects otherwise.
 
 **auth(login: String, password: String) : Promise**
 
-Auth with using chap-sha1(http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: http://tarantool.org/doc/book/box/authentication.html
+Authenticates using [`chap-sha1`](http://tarantool.org/doc/book/box/box_space.html). See [Tarantul docs](http://tarantool.org/doc/book/box/authentication.html) for more info on authentication.
 
 **select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) : Promise( Array of tuples)**
 
-Iterators: http://tarantool.org/doc/book/box/box_index.html. Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
+Supported [iterators](http://tarantool.org/doc/book/box/box_index.html): `eq`, `req`, `all`, `lt`, `le`, `ge`, 'gt', `bitsAllSet`, `bitsAnySet`, `bitsAllNotSet`.
 
-It's just select. Promise resolve array of tuples.
+It's just a select. `Promise` resolves to an array of tuples.
 
-Some examples: 
+Example: 
 
-```
+```js
 conn.select(512, 0, 1, 0, 'eq', [50]);
-//same as
+// same as
 conn.select('test', 'primary', 1, 0, 'eq', [50]);
 ```
 
-You can use space name or index name instead if id but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
+You can pass space name or index name instead of an id, but in that case it will perform some additional requests to obtain the metadata required for resolving names. Same goes for `delete`, `replace`, `insert` and `update`.
 
 **delete(spaceId: Number or String, indexId: Number or String, key: tuple) : Promise(Array of tuples)**
 
-Promise resolve an array of deleted tuples.
+Resolves to an array of deleted tuples.
 
 **update(spaceId: Number or String, indexId: Number or String, key: tuple, ops) : Promise(Array of tuples)**
 
-Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
+See [Tarantool docs](http://tarantool.org/doc/book/box/box_space.html) (search for `update` there) for more info on the `ops` parameter.
 
-Promise resolve an array of updated tuples.
+Resolves to an array of updated tuples.
 
 **insert(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
-So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+Performs an insert. See [Tarantool docs](http://tarantool.org/doc/book/box/box_space.html) (search for `update` there) for more info.
 
-Promise resolve a new tuple.
+Resolves to the inserted tuple.
 
 **upsert(spaceId: Number or String, ops: array of operations, tuple: tuple) : Promise()**
 
-About operation: http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert
+See [Tarantool docs](http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert) (search for `update` there) for more info on `upsert`.
 
-Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
-
-Promise resolve nothing.   
+Resolves to nothing.
 
 **replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
 
-So it's replace. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+Performs an replacement operation. See [Tarantool docs](http://tarantool.org/doc/book/box/box_space.html) (search for `update` there) for more info.
 
-Promise resolve a new or replaced tuple.
+Resolves to a new or replaced tuple.
 
 **call(functionName: String, args...) : Promise(Array or undefined)**
 
-Call function with arguments. You can find example at test.
+Calls a function with arguments. See the tests for more usage examples.
 
-You can create function on tarantool side: 
-```
+You can create a function in Tarantool: 
+
+```lua
 function myget(id)
-    val = box.space.batched:select{id}
-    return val[1]
+  val = box.space.batched:select{id}
+  return val[1]
 end
 ```
 
-And then use something like this:
-```
+And then call it like this:
+
+```js
 conn.call('myget', 4)
 .then(function(value){
-    console.log(value);
+  console.log(value);
 });
 ```
 
-If you have a 2 arguments function just send a second arguments in this way:
-```
-conn.call('my2argumentsfunc', 'first', 'second arguments')
-```
-And etc like this.
+If the function takes more than one argument then just pass the arguments as usually done in javascript:
 
-Because lua support a multiple return it's always return array or undefined.
+```js
+conn.call('2_arguments_func', 'first argument', 'second argument')
+```
+
+Because Lua supports returning multiple values as a result, it will always return either an array or `undefined`.
 
 **destroy(interupt: Boolean) : Promise**
 
-If you call destroy with interupt true it will interupt all process and destroy socket connection without awaiting results. Else it's stub methods with promise reject for future call and await all results and then destroy connection.
+If you call `destroy` with `interupt` set to `true` then it will interupt all processes and destroy all socket connections without waiting for them to finish. Otherwise (the default behaviour) it waits for all ongoing processes to finish and then closes the connection.
 
-##Testing
+## Msgpack implentation
 
-Now it's poor test just a win to win situation and some hacks before. Install all packages and tarantool on your machine then launch a test through:
+You can use any MessagePack implementation of your choice. The only requirement is that it implements the following interface:
+
+```js
+// `msgpack` implementation example
+/*
+  @interface
+  decode: (Buffer buf)
+  encode: (Object obj)
+ */
+var exampleCustomMsgpack = {
+  encode: function(obj){
+    return yourmsgpack.encode(obj);
+  },
+  decode: function(buf){
+    return yourmsgpack.decode(obj);
+  }
+};
+```
+
+[`msgpack-lite`](https://github.com/kawanet/msgpack-lite) is used by default.
+
+## Troubleshooting
+
+The connection will be destroyed in case of a connection-specific error. Subscribe to the socket `close` event to handle connection errors
+
+```js
+TarantoolConnection.socket.on('close', function(error){
+  // Hadle connection errors here
+})
+```
+
+## Testing
+
+Note: this is a very basic test, a more sophisticated one is coming in the future.
+
+First install all the dependencies
+
+```
+npm install
+```
+
+Also make sure Tarantool is installed on your machine.
+
+Next, prepare your Tarantool instance for the test:
 ```
 $ ./test/box.lua
 ```
 
-Then just a use **npm test** and it will use mocha and launch test.
+And, finally, run `npm test`.
 
-##Contributions
+## Contributing
 
-It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
+You're welcome to send me an email (or create an issue) discussing anything be it a feature request, a bug report or a suggestion for a change of any kind. If I don't answer to a comment or an issue then it means that I just missed the email notification. I receive a lot of emails from GitHub every day so please write me to `newbiecraft@gmail.com` directly if I don't answer you in one day.
 
-##Changelog
+## Changelog
 
-###1.0.0
+### 1.0.0
 
-Fix test for call changes and remove unuse upsert parameter (critical change API for upsert)
+  * Fix: call tests changed and removed unused upsert parameter (critical change API for upsert)
 
-###0.4.1
+### 0.4.1
 
-Add clear schema cache on change schema id
+  * Clearing schema cache on schema id change
 
-###0.4.0
+### 0.4.0
 
-Change msgpack5 to msgpack-lite(thx to @arusakov).  
-Add msgpack as option for connection.   
-Bump msgpack5 for work at new version.
+  * Switched `msgpack5` for `msgpack-lite` (thx to `@arusakov`).  
+  * Added `msgpack` as a connection option.   
+  * Bumped `msgpack5` version.
 
-###0.3.0
-Add upsert operation.  
-Key is now can be just a number.
+### 0.3.0
 
-##ToDo
+  * Added upsert operation.  
+  * Now key can be just a number.
 
-Test **eval** methods and make benchmarks and improve performance.
+## ToDo
+
+  * Test `eval` methods
+  * Release benchmarks
+  * Improve performance
