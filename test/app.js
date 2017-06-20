@@ -243,6 +243,20 @@ describe('Tarantool Connection tests', function(){
 				})
 				.catch(done);
 		});
+		it('evaluate expression', function(done){
+			conn.eval('return 2+2')
+				.then((res)=>{
+					assert.equal(res, 4)
+					done();
+				}, (e)=>{done(e)})
+		});
+		it('evaluate expression with args', function(done){
+			conn.eval('return func_sum(...)', 11, 22)
+				.then((res)=>{
+					assert.equal(res, 33)
+					done();
+				}, (e)=>{done(e)})
+		});
 	});
 	describe('upsert', function(){
 		/*eslint-disable no-shadow */
@@ -272,7 +286,7 @@ describe('Tarantool Connection tests', function(){
 			}
 		});
 		it('insert', function(done){
-			conn.upsert('upstest', [['+', 3, 3]], [1, 2, 3])
+			conn.upsert('upstest', ['+', 3, 3], [1, 2, 3])
 				.then(function() {
 					return conn.select('upstest', 'primary', 1, 0, 'eq', 1);
 				})
@@ -287,9 +301,9 @@ describe('Tarantool Connection tests', function(){
 				});
 		});
 		it('update', function(done){
-			conn.upsert('upstest', [['+', 2, 2]], [2, 4, 3])
+			conn.upsert('upstest', ['+', 2, 2], [2, 4, 3])
 				.then(function(){
-					return conn.upsert('upstest', [['+', 2, 2]], [2, 4, 3]);
+					return conn.upsert('upstest', ['+', 2, 2], [2, 4, 3]);
 				})
 				.then(function() {
 					return conn.select('upstest', 'primary', 1, 0, 'eq', 2)	;
