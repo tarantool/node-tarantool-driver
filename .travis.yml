@@ -3,12 +3,12 @@ dist: trusty
 
 language: node_js
 node_js:
-  - "0.12"
+  - "5"
+  - "4"
+  - "6"
+  - "7"
+  - "node"
   - "iojs"
-  - "stable"
-  - "4.1"
-  - "4.0"
-  - "5.5"
 cache: false
 
 before_script:
