@@ -12,14 +12,9 @@ node_js:
 cache: false
 
 before_script:
-  - uname -a
-  - lsb_release -a
-  - curl https://tarantool.org/dist/public.key | sudo apt-key add -
-  - echo "deb http://tarantool.org/dist/master/ubuntu `lsb_release -c -s` main" | sudo tee -a /etc/apt/sources.list.d/tarantool.list
-  - sudo apt-get update
+   - test.sh
 
 script:
-   - sudo apt-get -y install tarantool
    - ./test/box.lua &
    - sleep 2
    - npm run lint
