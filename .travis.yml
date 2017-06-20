@@ -17,5 +17,4 @@ before_script:
 script:
    - ./test/box.lua &
    - sleep 2
-   - npm run lint
    - npm test
