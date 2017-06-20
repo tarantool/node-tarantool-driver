@@ -12,7 +12,7 @@ node_js:
 cache: false
 
 before_script:
-   - test.sh
+   - ./test.sh
 
 script:
    - ./test/box.lua &
