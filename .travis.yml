@@ -16,5 +16,5 @@ before_script:
 
 script:
    - ./test/box.lua &
-   - sleep 2
+   - sleep 10
    - npm test
