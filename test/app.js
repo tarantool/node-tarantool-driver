@@ -126,7 +126,7 @@ describe('Tarantool Connection tests', function(){
 				done();
 			}).catch(function(e){ done(e); });
 		});
-		xit('a lot of insert', function(done){
+		it('a lot of insert', function(done){
 			var promises = [];
 			for (var i = 0; i <= 5000; i++) {
 				conn.insert(515, ['key' + i, i]);
