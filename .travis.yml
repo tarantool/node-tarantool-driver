@@ -1,5 +1,6 @@
 sudo: required
-dist: xenial
+services:
+  - docker
 
 language: node_js
 node_js:
@@ -15,6 +16,5 @@ before_script:
    - ./test.sh
 
 script:
-   - ./test/box.lua &
-   - sleep 10
+   - sleep 2
    - npm test
