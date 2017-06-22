@@ -105,3 +105,14 @@ if not box.schema.func.exists('test_delete') then
   box.schema.user.grant('test', 'execute', 'function', 'test_delete')
 end
 
+function func_foo()
+    return {foo='foo', bar=42}
+end
+
+function func_sum(x, y)
+    return x + y
+end
+
+function func_arg(arg)
+    return arg
+end

@@ -243,6 +243,26 @@ describe('Tarantool Connection tests', function(){
 				})
 				.catch(done);
 		});
+		it('evaluate expression', function(done){
+			conn.eval('return 2+2')
+				.then(function(res){
+					assert.equal(res, 4)
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				});
+		});
+		it('evaluate expression with args', function(done){
+			conn.eval('return func_sum(...)', 11, 22)
+				.then(function(res){
+					assert.equal(res, 33)
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				});
+		});
 	});
 	describe('upsert', function(){
 		/*eslint-disable no-shadow */
