@@ -10,13 +10,13 @@ For work with tarantool tuple i use msgpack-lite and array default transformatio
 
 If you have a problem with connection it will be destroyed. You can subscribe on TarantoolConnection.socket.on('close') for retrieve information about closing connection or you can process rejected errors for you requests.
 
-##Install
+## Install
 
 ```
 npm install --save tarantool-driver
 ```
 
-##Usage example
+## Usage example
 
 We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
 ```
@@ -36,7 +36,7 @@ conn.connect()
 ```
 
 
-##Msgpack implentation
+## Msgpack implentation
 
 You can use any implementation that can be duck typing with next interface:
 
@@ -60,7 +60,7 @@ var exampleCustomMsgpack = {
 
 By default use msgpack-lite package.
 
-##API
+## API
 
 **class TarantoolConnection(options)**
 ```
@@ -160,7 +160,7 @@ Because lua support a multiple return it's always return array or undefined.
 
 If you call destroy with interupt true it will interupt all process and destroy socket connection without awaiting results. Else it's stub methods with promise reject for future call and await all results and then destroy connection.
 
-##Testing
+## Testing
 
 Now it's poor test just a win to win situation and some hacks before. Install all packages and tarantool on your machine then launch a test through:
 ```
@@ -169,30 +169,30 @@ $ ./test/box.lua
 
 Then just a use **npm test** and it will use mocha and launch test.
 
-##Contributions
+## Contributions
 
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
-##Changelog
+## Changelog
 
-###1.0.0
+### 1.0.0
 
 Fix test for call changes and remove unuse upsert parameter (critical change API for upsert)
 
-###0.4.1
+### 0.4.1
 
 Add clear schema cache on change schema id
 
-###0.4.0
+### 0.4.0
 
 Change msgpack5 to msgpack-lite(thx to @arusakov).  
 Add msgpack as option for connection.   
 Bump msgpack5 for work at new version.
 
-###0.3.0
+### 0.3.0
 Add upsert operation.  
 Key is now can be just a number.
 
-##ToDo
+## ToDo
 
 Test **eval** methods and make benchmarks and improve performance.
