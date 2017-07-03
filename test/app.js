@@ -129,7 +129,7 @@ describe('Tarantool Connection tests', function(){
 		it('a lot of insert', function(done){
 			var promises = [];
 			for (var i = 0; i <= 5000; i++) {
-				conn.insert(515, ['key' + i, i]);
+				promises.push(conn.insert(515, ['key' + i, i]));
 			}
 			Promise.all(promises)
 				.then(function(pr){
@@ -246,7 +246,7 @@ describe('Tarantool Connection tests', function(){
 		it('evaluate expression', function(done){
 			conn.eval('return 2+2')
 				.then(function(res){
-					assert.equal(res, 4)
+					assert.equal(res, 4);
 					done();
 				})
 				.catch(function(e){
@@ -256,7 +256,7 @@ describe('Tarantool Connection tests', function(){
 		it('evaluate expression with args', function(done){
 			conn.eval('return func_sum(...)', 11, 22)
 				.then(function(res){
-					assert.equal(res, 33)
+					assert.equal(res, 33);
 					done();
 				})
 				.catch(function(e){
