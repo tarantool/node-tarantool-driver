@@ -1,3 +1,4 @@
+/* global Promise */
 'use strict'
 var tDriver = require('../lib/connection.js');
 var tConn = new tDriver({});
