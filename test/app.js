@@ -11,6 +11,7 @@ var TarantoolConnection = require('../lib/connection');
 var mlite = require('msgpack-lite');
 
 describe('Tarantool Connection tests', function(){
+	// this.timeout(20000);
 	before(function(){
 //		cp.execFile('./box.lua');
 	});
