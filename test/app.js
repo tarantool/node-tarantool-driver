@@ -17,22 +17,27 @@ describe('Tarantool Connection tests', function(){
 	});
 	var conn;
 	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013});
+		conn = new TarantoolConnection({port: 33013, lazyConnect: true});
 	});
 	describe('connection test', function(){
 		it('connect', function(done){
 				conn.connect().then(function(){
 				done();
-			}, function(e){ throw 'not connected'; });
+			}, function(e){ throw 'not connected'; })
+				.catch((e)=>{console.error(e)});
 		});
 		it('auth', function(done){
 			conn.connect().then(function(){
-				return conn.auth('test', 'test');
+				return conn._auth('test', 'test');
 			}, function(e){ throw 'not connected'; })
 			.then(function(){
 				done();
 			}, function(e){ throw 'not auth'; });
 		});
+		// it('reconnecting', function(){
+		// 	conn.connect()
+		// 		then
+		// })
 	});
 	describe('requests', function(){
 		var insertTuple = [50, 10, 'my key', 30];
@@ -41,25 +46,44 @@ describe('Tarantool Connection tests', function(){
 		/*eslint-enable no-shadow */
 		before(function(done){
 			console.log('before call');
+			// try{
+			// 	conn = new TarantoolConnection({port: 33013, lazyConnect: true});
+			// 	conn.connect().then(function(){
+			// 		return conn._auth('test', 'test');
+			// 	}, function(e){ throw 'not connected';})
+			// 		.then(function(){
+			// 			return Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
+			// 				conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
+			// 				conn.delete(512, 0, [999])]);
+			// 		})
+			// 		.then(function(){
+			// 			return conn.call('clearaddmore');
+			// 		})
+			// 		.then(function(){
+			// 			done();
+			// 		})
+			// 		.catch(function(e){
+			// 			done(e);
+			// 		});
+			// }
+			// catch(e){
+			// 	console.log(e);
+			// }
 			try{
-				conn = new TarantoolConnection({port: 33013});
-				conn.connect().then(function(){
-					return conn.auth('test', 'test');
-				}, function(e){ throw 'not connected';})
-					.then(function(){
-						return Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
-							conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
-							conn.delete(512, 0, [999])]);
-					})
-					.then(function(){
-						return conn.call('clearaddmore');
-					})
-					.then(function(){
-						done();
-					})
-					.catch(function(e){
-						done(e);
-					});
+				conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
+				
+				Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
+					conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
+					conn.delete(512, 0, [999])])
+				.then(function(){
+					return conn.call('clearaddmore');
+				})
+				.then(function(){
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				});
 			}
 			catch(e){
 				console.log(e);
@@ -271,9 +295,9 @@ describe('Tarantool Connection tests', function(){
 		/*eslint-enable no-shadow */
 		before(function(done){
 			try{
-				conn = new TarantoolConnection({port: 33013});
+				conn = new TarantoolConnection({port: 33013,lazyConnect: true});
 				conn.connect().then(function(){
-					return conn.auth('test', 'test');
+					return conn._auth('test', 'test');
 				}, function(e){ throw 'not connected'; })
 					.then(function(){
 						return Promise.all([
@@ -339,7 +363,10 @@ describe('Tarantool Connection tests', function(){
 						decode: function(buf){
 							return mlite.decode(buf);
 						}
-					}
+					},
+					lazyConnect: true,
+					username: 'test',
+					password: 'test'
 				}
 			);
 		});
@@ -349,12 +376,20 @@ describe('Tarantool Connection tests', function(){
 			}, function(e){ throw 'not connected'; });
 		});
 		it('auth', function(done){
-			customConn.connect().then(function(){
-				return customConn.auth('test', 'test');
-			}, function(e){ throw 'not connected'; })
-				.then(function(){
-					done();
-				}, function(e){ throw 'not auth'; });
+			return new Promise((resolve, reject) => {
+				customConn.connect()
+					.then(function(){
+						return customConn.call('box.session.user');
+					})
+					.then(function(res){
+						resolve(res);
+					})
+					.catch(function(e){reject(e);});
+			})
+			.then((res)=>{
+				console.log(res);
+			})
+			.catch(function(e){done(e);});
 		});
 	});
 });
