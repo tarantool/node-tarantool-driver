@@ -1,6 +1,6 @@
 {
   "name": "tarantool-driver",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "Tarantool driver for 1.6",
   "main": "index.js",
   "scripts": {
