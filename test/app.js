@@ -17,22 +17,37 @@ describe('Tarantool Connection tests', function(){
 	});
 	var conn;
 	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013, lazyConnect: true});
+		conn = new TarantoolConnection({port: 33013});
 	});
-	describe('connection test', function(){
+	describe.only('connection test', function(){
 		it('connect', function(done){
+			
+			return new Promise((resolve, reject) => {
 				conn.connect().then(function(){
+					resolve(true);
+				})
+				.catch((e)=>{reject(e);});
+			})
+			.then((res)=>{
 				done();
-			}, function(e){ throw 'not connected'; })
-				.catch((e)=>{console.error(e)});
+			})
+			.catch(function(e){done(e);});
+			
 		});
 		it('auth', function(done){
-			conn.connect().then(function(){
-				return conn._auth('test', 'test');
-			}, function(e){ throw 'not connected'; })
-			.then(function(){
+			return new Promise((resolve, reject) => {
+				conn.connect().then(function(){
+					return conn._auth('test', 'test');
+				})
+				.then(()=>{
+					resolve(true);
+				})
+				.catch((e)=>{reject(e);});
+			})
+			.then((res)=>{
 				done();
-			}, function(e){ throw 'not auth'; });
+			})
+			.catch(function(e){done(e);});
 		});
 		// it('reconnecting', function(){
 		// 	conn.connect()
