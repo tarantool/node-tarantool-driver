@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./lib ./test",
-    "test": "mocha -t 5000",
+    "test": "istanbul cover --report lcov _mocha",
+    "coveralls": "cat ./coverage/lcov.info | coveralls",
     "benchmark": "node benchmark/read"
   },
   "repository": {
@@ -25,18 +26,16 @@
   },
   "homepage": "https://github.com/KlonD90/node-tarantool-driver",
   "dependencies": {
-    "bitwise-xor": "0.0.0",
     "debug": "^2.6.8",
     "denque": "^1.2.1",
-    "ioredis": "^3.1.1",
     "lodash": "^4.17.4",
-    "msgpack-lite": "^0.1.20",
-    "object-assign": "^4.1.0",
-    "underscore": "^1.8.3"
+    "msgpack-lite": "^0.1.20"
   },
   "devDependencies": {
     "benchmark": "^2.1.0",
     "eslint": "^2.5.3",
+    "ioredis": "^3.1.1",
+    "istanbul": "^0.4.5",
     "mocha": "^2.2.4",
     "nanotimer": "^0.3.14"
   }
