@@ -29,10 +29,10 @@ describe('Tarantool Connection tests', function(){
 			conn.connect().then(function(){
 				return conn._auth('test', 'test');
 			})
-			.then(()=>{
+			.then(function(){
 				done();
 			})
-			.catch((e)=>{done(e);});
+			.catch(function(e){done(e);});
 		});
 		// it('reconnecting', function(){
 		// 	conn.connect()
