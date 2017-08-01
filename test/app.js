@@ -12,42 +12,27 @@ var mlite = require('msgpack-lite');
 
 describe('Tarantool Connection tests', function(){
 	// this.timeout(20000);
-	before(function(){
-//		cp.execFile('./box.lua');
-	});
 	var conn;
 	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013});
+		conn = new TarantoolConnection({port: 33013, lazyConnect: true});
 	});
-	describe.only('connection test', function(){
+	describe('connection test', function(){
 		it('connect', function(done){
-			
-			return new Promise((resolve, reject) => {
-				conn.connect().then(function(){
-					resolve(true);
-				})
-				.catch((e)=>{reject(e);});
-			})
-			.then((res)=>{
-				done();
-			})
-			.catch(function(e){done(e);});
-			
+			conn.connect()
+				.then(function(){
+					done();
+				}, function(e){
+					done(e);
+				});
 		});
 		it('auth', function(done){
-			return new Promise((resolve, reject) => {
-				conn.connect().then(function(){
-					return conn._auth('test', 'test');
-				})
-				.then(()=>{
-					resolve(true);
-				})
-				.catch((e)=>{reject(e);});
+			conn.connect().then(function(){
+				return conn._auth('test', 'test');
 			})
-			.then((res)=>{
+			.then(()=>{
 				done();
 			})
-			.catch(function(e){done(e);});
+			.catch((e)=>{done(e);});
 		});
 		// it('reconnecting', function(){
 		// 	conn.connect()
@@ -389,22 +374,6 @@ describe('Tarantool Connection tests', function(){
 			customConn.connect().then(function(){
 				done();
 			}, function(e){ throw 'not connected'; });
-		});
-		it('auth', function(done){
-			return new Promise((resolve, reject) => {
-				customConn.connect()
-					.then(function(){
-						return customConn.call('box.session.user');
-					})
-					.then(function(res){
-						resolve(res);
-					})
-					.catch(function(e){reject(e);});
-			})
-			.then((res)=>{
-				console.log(res);
-			})
-			.catch(function(e){done(e);});
 		});
 	});
 });
