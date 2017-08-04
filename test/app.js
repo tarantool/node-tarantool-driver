@@ -13,11 +13,11 @@ var mlite = require('msgpack-lite');
 describe('Tarantool Connection tests', function(){
 	// this.timeout(20000);
 	var conn;
-	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013, lazyConnect: true});
-	});
-	describe('connection test', function(){
-		it('connect', function(done){
+	describe('lazy connect', function(){
+		beforeEach(function(){
+			conn = new TarantoolConnection({port: 33013, lazyConnect: true, username: 'test', password: 'test'});
+		});
+		it('lazy connect', function(done){
 			conn.connect()
 				.then(function(){
 					done();
@@ -25,19 +25,73 @@ describe('Tarantool Connection tests', function(){
 					done(e);
 				});
 		});
-		it('auth', function(done){
+		it('should be authenticated', function(done){
 			conn.connect().then(function(){
-				return conn._auth('test', 'test');
+				return conn.eval('return box.session.user()');
 			})
-			.then(function(){
+			.then(function(res){
+				assert.equal(res[0], 'test');
 				done();
 			})
 			.catch(function(e){done(e);});
 		});
-		// it('reconnecting', function(){
-		// 	conn.connect()
-		// 		then
-		// })
+		it('should disconnect', function(done){
+			conn.connect()
+			.then(function(res){
+				conn.disconnect();
+				assert.equal(conn.socket.writable, false);
+				done();
+			})
+			.catch(function(e){done(e);});
+		});
+	});
+	describe('instant connection', function(){
+		beforeEach(function(){
+			conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
+		});
+		it('connect', function(done){
+			conn.eval('return func_arg(...)', 'connected!')
+				.then(function(res){
+					try{
+						assert.equal(res, 'connected!');
+					} catch(e){console.error(e);}
+					done();
+				}, function(e){
+					done(e);
+				});
+		});
+		it('should be authenticated', function(done){
+			conn.eval('return box.session.user()')
+				.then(function(res){
+					assert.equal(res[0], 'test');
+					done();
+				})
+				.catch(function(e){done(e);});
+		});
+	});
+	describe('reconnection', function(){
+		beforeEach(function(){
+			conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
+		});
+		it('shuold reconnect ', function(done){
+			conn.eval('return func_arg(...)', 'connected!')
+				.then(function(res){
+					try{
+						assert.equal(res, 'connected!');
+					} catch(e){console.error(e);}
+					done();
+				}, function(e){
+					done(e);
+				});
+		});
+		it('should be authenticated', function(done){
+			conn.eval('return box.session.user()')
+				.then(function(res){
+					assert.equal(res[0], 'test');
+					done();
+				})
+				.catch(function(e){done(e);});
+		});
 	});
 	describe('requests', function(){
 		var insertTuple = [50, 10, 'my key', 30];
@@ -46,29 +100,6 @@ describe('Tarantool Connection tests', function(){
 		/*eslint-enable no-shadow */
 		before(function(done){
 			console.log('before call');
-			// try{
-			// 	conn = new TarantoolConnection({port: 33013, lazyConnect: true});
-			// 	conn.connect().then(function(){
-			// 		return conn._auth('test', 'test');
-			// 	}, function(e){ throw 'not connected';})
-			// 		.then(function(){
-			// 			return Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
-			// 				conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
-			// 				conn.delete(512, 0, [999])]);
-			// 		})
-			// 		.then(function(){
-			// 			return conn.call('clearaddmore');
-			// 		})
-			// 		.then(function(){
-			// 			done();
-			// 		})
-			// 		.catch(function(e){
-			// 			done(e);
-			// 		});
-			// }
-			// catch(e){
-			// 	console.log(e);
-			// }
 			try{
 				conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
 				
@@ -101,6 +132,14 @@ describe('Tarantool Connection tests', function(){
 		it('simple select', function(done){
 			conn.select(512, 0, 1, 0, 'eq', [50])
 			.then(function(a){
+				assert.equal(a.length, 1);
+				for (var i = 0; i<a[0].length; i++)
+					assert.equal(a[0][i], insertTuple[i]);
+				done();
+			}, function(e){done(e);});
+		});
+		it('simple select with callback', function(done){
+			conn.selectCb(512, 0, 1, 0, 'eq', [50], function(a){
 				assert.equal(a.length, 1);
 				for (var i = 0; i<a[0].length; i++)
 					assert.equal(a[0][i], insertTuple[i]);
@@ -288,6 +327,16 @@ describe('Tarantool Connection tests', function(){
 					done(e);
 				});
 		});
+		it('ping', function(done){
+			conn.ping()
+				.then(function(res){
+					assert.equal(res, true);
+					done();
+				})
+				.catch(function(e){
+					done(e);
+				});
+		});
 	});
 	describe('upsert', function(){
 		/*eslint-disable no-shadow */
@@ -374,6 +423,14 @@ describe('Tarantool Connection tests', function(){
 			customConn.connect().then(function(){
 				done();
 			}, function(e){ throw 'not connected'; });
+		});
+		it('should be authenticated', function(done){
+			conn.eval('return box.session.user()')
+				.then(function(res){
+					assert.equal(res[0], 'test');
+					done();
+				})
+				.catch(function(e){done(e);});
 		});
 	});
 });
