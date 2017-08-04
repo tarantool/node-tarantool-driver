@@ -5,7 +5,7 @@ var expect = require('chai').expect;
 var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
 
-describe.only('Tarantool errors', function(){
+describe('Tarantool errors', function(){
 	// this.timeout(20000);
 	// var conn;
 	// beforeEach(function(){
