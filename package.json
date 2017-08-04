@@ -39,6 +39,7 @@
     "ioredis": "^3.1.2",
     "istanbul": "^0.4.5",
     "mocha": "^2.2.4",
-    "nanotimer": "^0.3.14"
+    "nanotimer": "^0.3.14",
+    "sinon": "^3.0.0"
   }
 }
