@@ -39,6 +39,10 @@ describe('constructor', function () {
 			expect(option).to.have.property('password', '123');
 			expect(option).to.have.property('username', 'userloser');
 
+			option = getOption('mail.ru:33013');
+			expect(option).to.have.property('port', 33013);
+			expect(option).to.have.property('host', 'mail.ru');
+
 			option = getOption('notguest:sesame@mail.ru:3301');
 			expect(option).to.have.property('port', 3301);
 			expect(option).to.have.property('host', 'mail.ru');
@@ -150,6 +154,11 @@ describe('lazy connect', function(){
 		})
 		.catch(function(e){done(e);});
 	});
+	it('should disconnect when inited', function(done){
+		conn.disconnect();
+		expect(conn.state).to.eql(32); // states.END == 32
+		done();
+	});
 	it('should disconnect', function(done){
 		conn.connect()
 		.then(function(res){
@@ -188,6 +197,22 @@ describe('instant connection', function(){
 				done();
 			})
 			.catch(function(e){done(e);});
+	});
+	it('should reject when auth failed', function (done) {
+		conn = new TarantoolConnection({port: 33013, username: 'userloser', password: 'test'});
+		conn.eval('return func_foo()')
+			.catch(function (err) {
+				expect(err.message).to.match(/User 'userloser' is not found/);
+				done();
+			});
+	});
+	it('should reject command when connection is closed', function (done) {
+		conn.disconnect();
+		conn.eval('return func_foo()')
+			.catch(function (err) {
+				expect(err.message).to.match(/Connection is closed/);
+				done();
+			});
 	});
 });
 
