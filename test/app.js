@@ -17,6 +17,7 @@ var conn;
 
 describe('constructor', function () {
 	it('should parse options correctly', function () {
+		stub(TarantoolConnection.prototype, 'connect').returns(Promise.resolve());
 		var option;
 		try {
 			option = getOption(6380);
@@ -72,9 +73,11 @@ describe('constructor', function () {
 			});
 			expect(option).to.have.property('port', 6380);
 		} catch (err) {
+			TarantoolConnection.prototype.connect.restore();
 			throw err;
 		}
-
+		TarantoolConnection.prototype.connect.restore();
+			
 		function getOption() {
 			conn = TarantoolConnection.apply(null, arguments);
 			return conn.options;
@@ -123,11 +126,11 @@ describe('reconnecting', function () {
 		conn.eval('return func_foo()')
 			.then(function () {
 				conn.disconnect();
-				conn.eval('return func_foo()')
-					.catch(function (err) {
-						expect(err.message).to.match(/Connection is closed/);
-						done();
-					});
+				return conn.eval('return func_foo()');
+			})
+			.catch(function (err) {
+				expect(err.message).to.match(/Connection is closed/);
+				done();
 			});
   });
 });
@@ -230,7 +233,7 @@ describe('timeout', function(){
 		// });
 		conn.eval('return func_foo()')
 			.catch(function (err) {
-				expect(err.message).to.match(/Connection is closed/);
+				expect(err.message).to.match(/connect ETIMEDOUT/);
 				done();
 			});
 		});
