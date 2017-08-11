@@ -1,23 +1,23 @@
+sudo: required
+services:
+  - docker
+
 language: node_js
 node_js:
-  - "0.12"
+  - "5"
+  - "4"
+  - "6"
+  - "7"
+  - "node"
   - "iojs"
-  - "stable"
-  - "4.1"
-  - "4.0"
-  - "5.5"
 cache: false
 
 before_script:
-  - uname -a
-  - lsb_release -a
-  - curl http://tarantool.org/dist/public.key | sudo apt-key add -
-  - echo "deb http://tarantool.org/dist/master/ubuntu `lsb_release -c -s` main" | sudo tee -a /etc/apt/sources.list.d/tarantool.list
-  - sudo apt-get update
+   - ./test.sh
 
 script:
-   - sudo apt-get -y install tarantool
-   - ./test/box.lua &
    - sleep 2
-   - npm run lint
    - npm test
+
+after_success:
+- npm run coveralls

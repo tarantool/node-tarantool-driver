@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/KlonD90/node-tarantool-driver.svg)](https://travis-ci.org/KlonD90/node-tarantool-driver)
 
-Node tarantool driver for 1.6 support Node.js v.0.12+ and IO.js.
+Node tarantool driver for 1.6 support Node.js v.4+.
 
 Based on https://github.com/mialinx/go-tarantool-1.6 and implements http://tarantool.org/doc/dev_guide/box-protocol.html, for more information you can read them or basic documentation at http://tarantool.org/doc/.
 
