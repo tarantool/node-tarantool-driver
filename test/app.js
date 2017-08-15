@@ -4,6 +4,7 @@
 
 /*eslint-env mocha */
 /* global Promise */
+var exec = require('child_process').exec;
 var expect = require('chai').expect;
 var sinon = require('sinon');
 var spy = sinon.spy.bind(sinon);
@@ -122,7 +123,7 @@ describe('reconnecting', function () {
 	});
 
 	it('should not try to reconnect when disconnected manually', function (done) {
-    conn = new TarantoolConnection(33013, { lazyConnect: true });
+		conn = new TarantoolConnection(33013, { lazyConnect: true });
 		conn.eval('return func_foo()')
 			.then(function () {
 				conn.disconnect();
@@ -132,7 +133,36 @@ describe('reconnecting', function () {
 				expect(err.message).to.match(/Connection is closed/);
 				done();
 			});
-  });
+	});
+	it('should try to reconnect and then connect eventially', function (done){
+		conn = new TarantoolConnection(33013, { lazyConnect: true });
+		conn.eval('return func_foo()')
+			.then(function () {
+				exec('docker kill tarantool', function(error, stdout, stderr){
+					if(error){
+						done(error);
+					}
+					conn.eval('return func_foo()')
+						.catch(function(err){
+							expect(err.message).to.match(/connect ECONNREFUSED/);
+						});
+					exec('docker start tarantool', function(e, stdo, stde){
+						if(error){
+							done(error);
+						}
+						conn.ping()
+							.then(function(res){
+								assert.equal(res, true);
+								done();
+							})
+							.catch(function(err){
+								done(err);
+							});
+					});
+				});
+			});
+
+	});
 });
 
 describe('lazy connect', function(){
