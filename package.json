@@ -1,7 +1,7 @@
 {
   "name": "tarantool-driver",
-  "version": "2.0.4",
-  "description": "Tarantool driver for 1.6",
+  "version": "3.0.0",
+  "description": "Tarantool driver for 1.7",
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./lib ./test",
@@ -11,7 +11,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/KlonD90/node-tarantool-driver.git"
+    "url": "https://github.com/tarantool/node-tarantool-driver.git"
   },
   "keywords": [
     "tarantool",
@@ -22,9 +22,9 @@
   "author": "KlonD90",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/KlonD90/node-tarantool-driver/issues"
+    "url": "https://github.com/tarantool/node-tarantool-driver/issues"
   },
-  "homepage": "https://github.com/KlonD90/node-tarantool-driver",
+  "homepage": "https://github.com/tarantool/node-tarantool-driver",
   "dependencies": {
     "debug": "^2.6.8",
     "denque": "^1.2.1",
