@@ -64,6 +64,7 @@ var tarantool = new Tarantool({
 });
 ```
 
+
 `retryStrategy` is a function that will be called when the connection is lost.
 The argument `times` means this is the nth reconnection being made and
 the return value represents how long (in ms) to wait to reconnect. When the
@@ -209,6 +210,7 @@ Promise resolve result:any.
 
 Example:
 
+
 ```
 conn.eval('return box.session.user()')
     .then(function(res){
@@ -237,6 +239,10 @@ and may lose some pending replies that haven't written to client.
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
+
+### 3.0.0
+
+New version with reconnect in alpha.
 
 ### 1.0.0
 
