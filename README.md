@@ -1,6 +1,6 @@
 # node-tarantool-driver
 
-[![Build Status](https://travis-ci.org/KlonD90/node-tarantool-driver.svg)](https://travis-ci.org/KlonD90/node-tarantool-driver)
+[![Build Status](https://travis-ci.org/tarantool/node-tarantool-driver.svg)](https://travis-ci.org/tarantool/node-tarantool-driver)
 
 Node tarantool driver for 1.6 support Node.js v.4+.
 
