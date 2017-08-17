@@ -252,7 +252,7 @@ describe('multihost', function () {
 	it('should try to connect to reserve hosts after losing connection with main', function(done){
 		conn = new TarantoolConnection(33013, {
 			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33013'],
-			attemptsBeforeReserve: 2,
+			beforeReserve: 2,
 			retryStrategy: function (times) {
 					return Math.min(times * 500, 2000);
 			}
@@ -278,7 +278,7 @@ describe('multihost', function () {
 	it('should try to connect to reserve hosts cyclically', function(done){
 		conn = new TarantoolConnection(33013, {
 			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33015'],
-			attemptsBeforeReserve: 2,
+			beforeReserve: 2,
 			retryStrategy: function (times) {
 					return Math.min(times * 500, 2000);
 			}

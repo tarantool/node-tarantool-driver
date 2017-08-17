@@ -46,7 +46,34 @@ Creates a Tarantool instance
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
 | [options.timeout] | <code>number</code> | <code>0</code> | The milliseconds before a timeout occurs during the initial connection to the Tarantool server. |
 | [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Tarantool` instance is created, it will connect to Tarantool server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor. |
+| [options.reserveHosts] | <code>array</code> | [] | Array of [strings](https://tarantool.org/en/doc/reference/configuration/index.html?highlight=uri#uri)  - reserve hosts. Client will try to connect to hosts from this array after loosing connection with current host and will do it cyclically. See example below.|
+| [options.beforeReserve] | <code>number</code> | <code>2</code> | Number of attempts to reconnect before connect to next host from the <code>reserveHosts</code> |
 | [options.retryStrategy] | <code>function</code> |  | See below |
+
+### Reserve hosts example:
+
+```javascript
+let connection = new Tarantool({
+    host: 'mail.ru',
+    port: 33013,
+    username: 'user'
+    password: 'secret',
+    reserveHosts: [
+        'anotheruser:difficultpass@mail.ru:33033',
+        '127.0.0.1:3301'
+    ],
+    beforeReserve: 1
+})
+// connect to mail.ru:33013 -> dead 
+//                  ↓
+// trying connect to mail.ru:33033 -> dead
+//                  ↓
+// trying connect to 127.0.0.1:3301 -> dead
+//                  ↓
+// trying connect to mail.ru:33013 ...etc
+```
+
+### Retry strategy
 
 By default, node-tarantool-driver client will try to reconnect when the connection to Tarantool is lost
 except when the connection is closed manually by `tarantool.disconnect()`.
