@@ -263,7 +263,7 @@ describe('multihost', function () {
 					if(error){
 						done(error);
 					}
-					conn.ping().then(()=>{console.log('ping!');})
+					conn.ping().then(function(){console.log('ping!');})
 						.catch(function(err){
 							expect(err.message).to.match(/connect ECONNREFUSED/);
 							setTimeout(timer.bind(null, done, '33014'), 2000);
@@ -289,7 +289,7 @@ describe('multihost', function () {
 					if(error){
 						done(error);
 					}
-					conn.ping().then(()=>{console.log('ping!');})
+					conn.ping().then(function(){console.log('ping!');})
 						.catch(function(err){
 							expect(err.message).to.match(/connect ECONNREFUSED/);
 							setTimeout(timer.bind(null, done, '33014', 'reserve'), 2000);
