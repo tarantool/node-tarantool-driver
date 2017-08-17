@@ -178,13 +178,13 @@ describe('reconnecting', function () {
 	it('should try to reconnect and then connect eventially', function (done){
 		function timer(){
 			return conn.ping()
-							.then(function(res){
-								assert.equal(res, true);
-								done();
-							})
-							.catch(function(err){
-								done(err);
-							});
+				.then(function(res){
+					assert.equal(res, true);
+					done();
+				})
+				.catch(function(err){
+					done(err);
+				});
 		}
 		conn = new TarantoolConnection(33013, { lazyConnect: true });
 		conn.eval('return func_foo()')
@@ -201,7 +201,7 @@ describe('reconnecting', function () {
 						if(error){
 							done(error);
 						}
-						setTimeout(timer, 3000);
+						setTimeout(timer, 1000);
 					});
 				});
 			});
@@ -230,9 +230,9 @@ describe('multihost', function () {
 							expect(err.message).to.match(/connect ECONNREFUSED/);
 							if(port == '33014'){
 								exec('docker start tarantool');
-								setTimeout(timer.bind(null, done, '33015', 'reserve_2'), 1000);
+								setTimeout(timer.bind(null, done, '33015', 'reserve_2'), 2000);
 							} else if(port == '33015'){
-								setTimeout(timer.bind(null, done, '33013'), 1000);
+								setTimeout(timer.bind(null, done, '33013'), 2000);
 							}
 						});
 				});
@@ -242,7 +242,7 @@ describe('multihost', function () {
 				exec('docker start tarantool');
 				setTimeout(function() {
 					done();
-				}, 2000);
+				}, 3000);
 			}
 		})
 		.catch(function(e){
@@ -252,7 +252,7 @@ describe('multihost', function () {
 	it('should try to connect to reserve hosts after losing connection with main', function(done){
 		conn = new TarantoolConnection(33013, {
 			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33013'],
-			attemptsBeforeReserve: 1,
+			attemptsBeforeReserve: 2,
 			retryStrategy: function (times) {
 					return Math.min(times * 500, 2000);
 			}
@@ -266,7 +266,7 @@ describe('multihost', function () {
 					conn.ping().then(()=>{console.log('ping!');})
 						.catch(function(err){
 							expect(err.message).to.match(/connect ECONNREFUSED/);
-							setTimeout(timer.bind(null, done, '33014'), 1000);
+							setTimeout(timer.bind(null, done, '33014'), 2000);
 						});
 				});
 			})
@@ -278,7 +278,7 @@ describe('multihost', function () {
 	it('should try to connect to reserve hosts cyclically', function(done){
 		conn = new TarantoolConnection(33013, {
 			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33015'],
-			attemptsBeforeReserve: 1,
+			attemptsBeforeReserve: 2,
 			retryStrategy: function (times) {
 					return Math.min(times * 500, 2000);
 			}
@@ -292,7 +292,7 @@ describe('multihost', function () {
 					conn.ping().then(()=>{console.log('ping!');})
 						.catch(function(err){
 							expect(err.message).to.match(/connect ECONNREFUSED/);
-							setTimeout(timer.bind(null, done, '33014', 'reserve'), 1000);
+							setTimeout(timer.bind(null, done, '33014', 'reserve'), 2000);
 						});
 				});
 			})
