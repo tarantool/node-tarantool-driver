@@ -16,7 +16,7 @@ before_script:
    - ./test.sh
 
 script:
-   - sleep 2
+   - sleep 4
    - npm test
 
 after_success:
