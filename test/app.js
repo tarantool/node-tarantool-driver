@@ -59,6 +59,47 @@ describe('constructor', function () {
 			expect(option).to.have.property('host', '192.168.1.1');
 
 			option = getOption({
+				port: 6380,
+				host: '192.168.1.1',
+				reserveHosts: ['notguest:sesame@mail.ru:3301', 'mail.ru:3301']
+			});
+			expect(option).to.have.property('port', 6380);
+			expect(option).to.have.property('host', '192.168.1.1');
+			expect(option).to.have.property('reserveHosts');
+			expect(option.reserveHosts).to.deep.equal(['notguest:sesame@mail.ru:3301', 'mail.ru:3301']);
+			
+			option = new TarantoolConnection({
+				port: 6380,
+				host: '192.168.1.1',
+				reserveHosts: ['notguest:sesame@mail.ru:3301', 'mail.ru:3301']
+			});
+			expect(option.reserve).to.deep.include(
+				{
+					port:	6380,
+					host: '192.168.1.1',
+					username: null,
+					password: null
+				},
+				{
+					port:	3301,
+					host: 'mail.ru'
+				},
+				{
+					port:	3301,
+					host: 'mail.ru',
+					username: 'notguest',
+					password: 'sesame'
+				}
+			);
+
+			option = getOption({
+				port: 6380,
+				host: '192.168.1.1'
+			});
+			expect(option).to.have.property('port', 6380);
+			expect(option).to.have.property('host', '192.168.1.1');
+
+			option = getOption({
 				port: '6380'
 			});
 			expect(option).to.have.property('port', 6380);
@@ -93,7 +134,7 @@ describe('constructor', function () {
 });
 
 describe('reconnecting', function () {
-	this.timeout(5000);
+	this.timeout(8000);
 	it('should pass the correct retry times', function (done) {
 		var t = 0;
 		new TarantoolConnection({
@@ -135,6 +176,16 @@ describe('reconnecting', function () {
 			});
 	});
 	it('should try to reconnect and then connect eventially', function (done){
+		function timer(){
+			return conn.ping()
+				.then(function(res){
+					assert.equal(res, true);
+					done();
+				})
+				.catch(function(err){
+					done(err);
+				});
+		}
 		conn = new TarantoolConnection(33013, { lazyConnect: true });
 		conn.eval('return func_foo()')
 			.then(function () {
@@ -150,18 +201,104 @@ describe('reconnecting', function () {
 						if(error){
 							done(error);
 						}
-						conn.ping()
-							.then(function(res){
-								assert.equal(res, true);
-								done();
-							})
-							.catch(function(err){
-								done(err);
-							});
+						setTimeout(timer, 1000);
 					});
 				});
 			});
+	});
+});
 
+describe('multihost', function () {
+	this.timeout(20000);
+	after(function() {
+    exec('docker start tarantool');
+	});
+	var t = 0;
+	function timer(done, port, container){
+		return conn.eval('return box.cfg').then(function(res){
+			expect(res[0].listen).to.eql(port);
+			if(port == '33013'){
+				done();
+			}
+			if(container){
+				exec('docker kill '+container, function(error, stdout, stderr){
+					if(error){
+						done(error);
+					}
+					conn.ping()
+						.catch(function(err){
+							expect(err.message).to.match(/connect ECONNREFUSED/);
+							if(port == '33014'){
+								exec('docker start tarantool');
+								setTimeout(timer.bind(null, done, '33015', 'reserve_2'), 2000);
+							} else if(port == '33015'){
+								setTimeout(timer.bind(null, done, '33013'), 2000);
+							}
+						});
+				});
+			}
+			if(t == 0){
+				t++;
+				exec('docker start tarantool');
+				setTimeout(function() {
+					done();
+				}, 3000);
+			}
+		})
+		.catch(function(e){
+			done(e);
+		});
+	}
+	it('should try to connect to reserve hosts after losing connection with main', function(done){
+		conn = new TarantoolConnection(33013, {
+			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33013'],
+			beforeReserve: 2,
+			retryStrategy: function (times) {
+					return Math.min(times * 500, 2000);
+			}
+		});
+		conn.ping()
+			.then(function(){
+				exec('docker kill tarantool', function(error, stdout, stderr){
+					if(error){
+						done(error);
+					}
+					conn.ping().then(function(){console.log('ping!');})
+						.catch(function(err){
+							expect(err.message).to.match(/connect ECONNREFUSED/);
+							setTimeout(timer.bind(null, done, '33014'), 2000);
+						});
+				});
+			})
+			.catch(function(e){
+				done(e);
+			});
+	});
+
+	it('should try to connect to reserve hosts cyclically', function(done){
+		conn = new TarantoolConnection(33013, {
+			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33015'],
+			beforeReserve: 2,
+			retryStrategy: function (times) {
+					return Math.min(times * 500, 2000);
+			}
+		});
+		conn.ping()
+			.then(function(){
+				exec('docker kill tarantool', function(error, stdout, stderr){
+					if(error){
+						done(error);
+					}
+					conn.ping().then(function(){console.log('ping!');})
+						.catch(function(err){
+							expect(err.message).to.match(/connect ECONNREFUSED/);
+							setTimeout(timer.bind(null, done, '33014', 'reserve'), 2000);
+						});
+				});
+			})
+			.catch(function(e){
+				done(e);
+			});
 	});
 });
 

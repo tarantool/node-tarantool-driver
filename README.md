@@ -1,38 +1,117 @@
-# node-tarantool-driver
+# Node.js driver for tarantool 1.6+
 
 [![Build Status](https://travis-ci.org/tarantool/node-tarantool-driver.svg)](https://travis-ci.org/tarantool/node-tarantool-driver)
 
 Node tarantool driver for 1.6 support Node.js v.4+.
 
-Based on https://github.com/mialinx/go-tarantool-1.6 and implements http://tarantool.org/doc/dev_guide/box-protocol.html, for more information you can read them or basic documentation at http://tarantool.org/doc/.
+Based on [go-tarantool](https://github.com/tarantool/go-tarantool) and implements [Tarantool’s binary protocol](http://tarantool.org/doc/dev_guide/box-protocol.html), for more information you can read them or basic documentation at [Tarantool manual](http://tarantool.org/doc/).
 
-For work with tarantool tuple i use msgpack-lite and array default transformation with this package.
+Code architecture and some features in version 3 borrowed from the [ioredis](https://github.com/luin/ioredis).
 
-If you have a problem with connection it will be destroyed. You can subscribe on TarantoolConnection.socket.on('close') for retrieve information about closing connection or you can process rejected errors for you requests.
+[msgpack-lite](https://github.com/kawanet/msgpack-lite) package used as MsgPack encoder/decoder.
 
-## Install
+<!-- If you have a problem with connection it will be destroyed. You can subscribe on TarantoolConnection.socket.on('close') for retrieve information about closing connection or you can process rejected errors for you requests. -->
+
+
+## Table of contents
+
+* [Installation](#installation)
+* [Configuration](#configuration)
+* [Usage example](#usage-example)
+* [Msgpack implentation](#msgpack-implentation)
+* [API reference](#api-reference)
+* [Testing](#testing)
+* [Contributions](#contributions)
+* [Changelog](#changelog)
+
+## Installation
 
 ```
 npm install --save tarantool-driver
 ```
+## Configuration
+
+new Tarantool([port], [host], [options])
+
+Creates a Tarantool instance
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| [port] | <code>number</code> \| <code>string</code> \| <code>Object</code> | <code>3301</code> | Port of the Tarantool server, or a URI string (see the examples in [tarantool configuration doc](https://tarantool.org/en/doc/reference/configuration/index.html#uri)), or the `options` object(see the third argument). |
+| [host] | <code>string</code> \| <code>Object</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server, when the first argument is a URL string, this argument is an object represents the options. |
+| [options] | <code>Object</code> |  | Other options. |
+| [options.port] | <code>number</code> | <code>6379</code> | Port of the Tarantool server. |
+| [options.host] | <code>string</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server. |
+| [options.username] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
+| [options.password] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
+| [options.timeout] | <code>number</code> | <code>0</code> | The milliseconds before a timeout occurs during the initial connection to the Tarantool server. |
+| [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Tarantool` instance is created, it will connect to Tarantool server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor. |
+| [options.reserveHosts] | <code>array</code> | [] | Array of [strings](https://tarantool.org/en/doc/reference/configuration/index.html?highlight=uri#uri)  - reserve hosts. Client will try to connect to hosts from this array after loosing connection with current host and will do it cyclically. See example below.|
+| [options.beforeReserve] | <code>number</code> | <code>2</code> | Number of attempts to reconnect before connect to next host from the <code>reserveHosts</code> |
+| [options.retryStrategy] | <code>function</code> |  | See below |
+
+### Reserve hosts example:
+
+```javascript
+let connection = new Tarantool({
+    host: 'mail.ru',
+    port: 33013,
+    username: 'user'
+    password: 'secret',
+    reserveHosts: [
+        'anotheruser:difficultpass@mail.ru:33033',
+        '127.0.0.1:3301'
+    ],
+    beforeReserve: 1
+})
+// connect to mail.ru:33013 -> dead 
+//                  ↓
+// trying connect to mail.ru:33033 -> dead
+//                  ↓
+// trying connect to 127.0.0.1:3301 -> dead
+//                  ↓
+// trying connect to mail.ru:33013 ...etc
+```
+
+### Retry strategy
+
+By default, node-tarantool-driver client will try to reconnect when the connection to Tarantool is lost
+except when the connection is closed manually by `tarantool.disconnect()`.
+
+It's very flexible to control how long to wait to reconnect after disconnection
+using the `retryStrategy` option:
+
+```javascript
+var tarantool = new Tarantool({
+  // This is the default value of `retryStrategy`
+  retryStrategy: function (times) {
+    var delay = Math.min(times * 50, 2000);
+    return delay;
+  }
+});
+```
+
+
+`retryStrategy` is a function that will be called when the connection is lost.
+The argument `times` means this is the nth reconnection being made and
+the return value represents how long (in ms) to wait to reconnect. When the
+return value isn't a number, node-tarantool-driver will stop trying to reconnect, and the connection
+will be lost forever if the user doesn't call `tarantool.connect()` manually.
+
+**This feature is borrowed from the [ioredis](https://github.com/luin/ioredis)**
 
 ## Usage example
 
 We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
 ```
 var TarantoolConnection = require('tarantool-driver');
-var conn = new TarantoolConnection({port: 3301});
-conn.connect()
-.then(function(){
-  //auth for login, password
-  return conn.auth('test', 'test');
-}).then(function(){
-  // select arguments space_id, index_id, limit, offset, iterator, key
-  return conn.select(512, 0, 1, 0, 'eq', [50]);
-})
-.then(funtion(results){
-  doSomeThingWithResults(results);
-});
+var conn = new TarantoolConnection('notguest:sesame@mail.ru:3301');
+
+// select arguments space_id, index_id, limit, offset, iterator, key
+conn.select(512, 0, 1, 0, 'eq', [50])
+    .then(funtion(results){
+        doSomeThingWithResults(results);
+    });
 ```
 
 
@@ -60,31 +139,21 @@ var exampleCustomMsgpack = {
 
 By default use msgpack-lite package.
 
-## API
+## API reference
 
-**class TarantoolConnection(options)**
-```
-var defaultOptions = {
-    host: 'localhost',
-    port: '3301',
-    log: false,
-	  msgpack: require('msgpack-lite'),
-    timeout: 3000
-};
-```
-You can overrid default options with options.
-
-**connect() : Promise**
+### tarantool.connect() ⇒ <code>Promise</code>
 
 Resolve if connected. Or reject if not.
 
-**auth(login: String, password: String) : Promise**
+### tarantool._auth(login: String, password: String) ⇒ <code>Promise</code>
 
-Auth with using chap-sha1(http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: http://tarantool.org/doc/book/box/authentication.html
+**An internal method. The connection should be established before invoking.**
 
-**select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) : Promise( Array of tuples)**
+Auth with using [chap-sha1](http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: [authentication](http://tarantool.org/doc/book/box/authentication.html)
 
-Iterators: http://tarantool.org/doc/book/box/box_index.html. Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
+### tarantool.select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) ⇒ <code>Promise</code>
+
+[Iterators](http://tarantool.org/doc/book/box/box_index.html). Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
 
 It's just select. Promise resolve array of tuples.
 
@@ -96,41 +165,45 @@ conn.select(512, 0, 1, 0, 'eq', [50]);
 conn.select('test', 'primary', 1, 0, 'eq', [50]);
 ```
 
-You can use space name or index name instead if id but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
+You can use space name or index name instead of id, but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
 
-**delete(spaceId: Number or String, indexId: Number or String, key: tuple) : Promise(Array of tuples)**
+### tarantool.selectCb(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple, callback: function(success), callback: function(error))
+
+Same as [tarantool.select](#select) but with callbacks.
+
+### tarantool.delete(spaceId: Number or String, indexId: Number or String, key: tuple) ⇒ <code>Promise</code>
 
 Promise resolve an array of deleted tuples.
 
-**update(spaceId: Number or String, indexId: Number or String, key: tuple, ops) : Promise(Array of tuples)**
+### tarantool.update(spaceId: Number or String, indexId: Number or String, key: tuple, ops) ⇒ <code>Promise</code>
 
-Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
+[Possible operators.](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.update)
 
 Promise resolve an array of updated tuples.
 
-**insert(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
+### tarantool.insert() ⇒ <code>Promise</code>
 
-So it's insert. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+More you can read here: [Insert](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.insert)
 
 Promise resolve a new tuple.
 
-**upsert(spaceId: Number or String, ops: array of operations, tuple: tuple) : Promise()**
+### tarantool.upsert(spaceId: Number or String, ops: array of operations, tuple: tuple) ⇒ <code>Promise</code>
 
-About operation: http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert
+About operation: [Upsert](http://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.upsert)
 
-Ops: http://tarantool.org/doc/book/box/box_space.html (search for update here).
+[Possible operators.](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.update)
 
 Promise resolve nothing.   
 
-**replace(spaceId: Number or String, tuple: tuple) : Promise(Tuple)**
+### tarantool.replace(spaceId: Number or String, tuple: tuple) ⇒ <code>Promise</code>
 
-So it's replace. More you can read here: http://tarantool.org/doc/book/box/box_space.html
+More you can read here: [Replace](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.replace)
 
 Promise resolve a new or replaced tuple.
 
-**call(functionName: String, args...) : Promise(Array or undefined)**
+### tarantool.call(functionName: String, args...) ⇒ <code>Promise</code>
 
-Call function with arguments. You can find example at test.
+Call a function with arguments.
 
 You can create function on tarantool side: 
 ```
@@ -143,37 +216,60 @@ end
 And then use something like this:
 ```
 conn.call('myget', 4)
-.then(function(value){
-    console.log(value);
-});
+    .then(function(value){
+        console.log(value);
+    });
 ```
 
 If you have a 2 arguments function just send a second arguments in this way:
 ```
-conn.call('my2argumentsfunc', 'first', 'second arguments')
+conn.call('my2argumentsfunc', 'first', 'second argument')
 ```
 And etc like this.
 
 Because lua support a multiple return it's always return array or undefined.
 
-**destroy(interupt: Boolean) : Promise**
+### tarantool.eval(expression: String) ⇒ <code>Promise</code>
 
-If you call destroy with interupt true it will interupt all process and destroy socket connection without awaiting results. Else it's stub methods with promise reject for future call and await all results and then destroy connection.
+Evaluate and execute the expression in Lua-string. [Eval](https://tarantool.org/doc/reference/reference_lua/net_box.html?highlight=eval#lua-function.conn.eval)
+
+Promise resolve result:any.
+
+Example:
+
+
+```
+conn.eval('return box.session.user()')
+    .then(function(res){
+        console.log('current user is:' res[0])
+    })
+```
+
+### tarantool.ping() ⇒ <code>Promise</code>
+
+Promise resolve true.
+
+### ~~tarantool.destroy(interupt: Boolean) ⇒ <code>Promise</code>~~
+***Deprecated***
+### tarantool.disconnect()
+Disconnect from Tarantool.
+
+This method closes the connection immediately,
+and may lose some pending replies that haven't written to client.
 
 ## Testing
 
-Now it's poor test just a win to win situation and some hacks before. Install all packages and tarantool on your machine then launch a test through:
-```
-$ ./test/box.lua
-```
-
-Then just a use **npm test** and it will use mocha and launch test.
+**npm test**
 
 ## Contributions
 
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
+
+### 3.0.0
+
+New version with reconnect in alpha.
 
 ### 1.0.0
 
@@ -195,4 +291,4 @@ Key is now can be just a number.
 
 ## ToDo
 
-Test **eval** methods and make benchmarks and improve performance.
+finish multihost feature
