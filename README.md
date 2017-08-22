@@ -37,7 +37,7 @@ Creates a Tarantool instance, extends [EventEmitter](http://nodejs.org/api/event
 
 Connection related custom events:
 * "reconnecting" - emitted when the client try to reconnect, first argument is retry delay in ms.
-* "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is object with host and port of the Taranool server.
+* "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is an object with host and port of the Taranool server.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
