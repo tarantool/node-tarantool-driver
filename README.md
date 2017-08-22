@@ -31,9 +31,13 @@ npm install --save tarantool-driver
 ```
 ## Configuration
 
-new Tarantool([port], [host], [options])
+new Tarantool([port], [host], [options]) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
 
-Creates a Tarantool instance
+Creates a Tarantool instance, extends [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter).
+
+Connection related custom events:
+* "reconnecting" - emitted when the client try to reconnect, first argument is retry delay in ms.
+* "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is object with host and port of the Taranool server.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
