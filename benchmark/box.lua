@@ -9,4 +9,10 @@ box.once('counter', function()
   counter:create_index('primary',   {type = 'TREE', unique = true, parts = {1, 'STR'}})
 end)
 
+s = box.space.bench
+if not s then
+    s = box.schema.space.create('bench')
+    p = s:create_index('primary', {type = 'hash', parts = {1, 'unsigned'}})
+end
+
 box.space.counter:truncate{}
