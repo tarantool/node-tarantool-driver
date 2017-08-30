@@ -209,91 +209,73 @@ describe('reconnecting', function () {
 });
 
 describe('multihost', function () {
-	this.timeout(20000);
-	after(function() {
-    exec('docker start tarantool');
-	});
-	var t = 0;
-	function timer(done, port, container){
-		return conn.eval('return box.cfg').then(function(res){
-			expect(res[0].listen).to.eql(port);
-			if(port == '33013'){
-				done();
-			}
-			if(container){
-				exec('docker kill '+container, function(error, stdout, stderr){
-					if(error){
-						done(error);
-					}
-					conn.ping()
-						.catch(function(err){
-							expect(err.message).to.match(/connect ECONNREFUSED/);
-							if(port == '33014'){
-								exec('docker start tarantool');
-								setTimeout(timer.bind(null, done, '33015', 'reserve_2'), 2000);
-							} else if(port == '33015'){
-								setTimeout(timer.bind(null, done, '33013'), 2000);
-							}
-						});
-				});
-			}
-			if(t == 0){
-				t++;
-				exec('docker start tarantool');
-				setTimeout(function() {
-					done();
-				}, 3000);
-			}
-		})
-		.catch(function(e){
-			done(e);
-		});
-	}
-	it('should try to connect to reserve hosts after losing connection with main', function(done){
-		conn = new TarantoolConnection(33013, {
-			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33013'],
-			beforeReserve: 2,
-			retryStrategy: function (times) {
-					return Math.min(times * 500, 2000);
-			}
-		});
-		conn.ping()
-			.then(function(){
-				exec('docker kill tarantool', function(error, stdout, stderr){
-					if(error){
-						done(error);
-					}
-					conn.ping().then(function(){console.log('ping!');})
-						.catch(function(err){
-							expect(err.message).to.match(/connect ECONNREFUSED/);
-							setTimeout(timer.bind(null, done, '33014'), 2000);
-						});
-				});
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-
+	this.timeout(10000);
+	// after(function() {
+  //   exec('docker start tarantool');
+	// });
+	var t;
 	it('should try to connect to reserve hosts cyclically', function(done){
 		conn = new TarantoolConnection(33013, {
 			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33015'],
-			beforeReserve: 2,
+			beforeReserve: 1,
 			retryStrategy: function (times) {
-					return Math.min(times * 500, 2000);
+        return Math.min(times * 500, 2000);
+    	}
+		});
+		t = 0;
+		conn.on('connect', function(){
+			switch (t){
+				case 1:
+					conn.eval('return box.cfg')
+					.then(function(res){
+						t++;
+						expect(res[0].listen).to.eql('33014');
+						exec('docker kill reserve', function(error, stdout, stderr){
+							if(error){
+								done(error);
+							}
+						});
+						exec('docker start tarantool');
+					})
+					.catch(function(e){
+						done(e);
+					});
+					break;
+				case 2:
+					conn.eval('return box.cfg')
+					.then(function(res){
+						t++;
+						expect(res[0].listen).to.eql('33015');
+						exec('docker kill reserve_2', function(error, stdout, stderr){
+							if(error){
+								done(error);
+							}
+						});
+					})
+					.catch(function(e){
+						done(e);
+					});
+					break;
+				case 3:
+					conn.eval('return box.cfg')
+					.then(function(res){
+						t++;
+						expect(res[0].listen).to.eql('33013');
+						done();
+					})
+					.catch(function(e){
+						done(e);
+					});
+					break;
 			}
 		});
 		conn.ping()
 			.then(function(){
+				t++;
 				exec('docker kill tarantool', function(error, stdout, stderr){
 					if(error){
 						done(error);
 					}
-					conn.ping().then(function(){console.log('ping!');})
-						.catch(function(err){
-							expect(err.message).to.match(/connect ECONNREFUSED/);
-							setTimeout(timer.bind(null, done, '33014', 'reserve'), 2000);
-						});
 				});
 			})
 			.catch(function(e){
@@ -373,10 +355,12 @@ describe('instant connection', function(){
 		conn.eval('return func_foo()')
 			.catch(function (err) {
 				expect(err.message).to.match(/User 'userloser' is not found/);
+				conn.disconnect();
 				done();
 			});
 	});
 	it('should reject command when connection is closed', function (done) {
+		conn = new TarantoolConnection();
 		conn.disconnect();
 		conn.eval('return func_foo()')
 			.catch(function (err) {
@@ -392,18 +376,21 @@ describe('timeout', function(){
 			timeout: 1,
 			retryStrategy: null
 		});
-		// conn.on('error', function (err) {
-		// 	expect(err.message).to.eql('connect ETIMEDOUT');
-		// 	if (!--pending) {
-		// 		done();
-		// 	}
-		// });
-		conn.eval('return func_foo()')
+		var pending = 2;
+    conn.on('error', function (err) {
+      expect(err.message).to.eql('connect ETIMEDOUT');
+      if (!--pending) {
+        done();
+      }
+    });
+		conn.ping()
 			.catch(function (err) {
-				expect(err.message).to.match(/connect ETIMEDOUT/);
-				done();
+				expect(err.message).to.match(/Connection is closed/);
+				if (!--pending) {
+					done();
+				}
 			});
-		});
+	});
 	it('should clear the timeout when connected', function (done) {
 		conn = new TarantoolConnection(33013, { timeout: 10000 });
 		setImmediate(function () {
@@ -668,7 +655,7 @@ describe('upsert', function(){
 			conn = new TarantoolConnection({port: 33013,lazyConnect: true});
 			conn.connect().then(function(){
 				return conn._auth('test', 'test');
-			}, function(e){ throw 'not connected'; })
+			}, function(e){ done(e); })
 				.then(function(){
 					return Promise.all([
 						conn.delete('upstest', 'primary', 1),

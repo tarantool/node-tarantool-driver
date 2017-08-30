@@ -20,7 +20,7 @@ Code architecture and some features in version 3 borrowed from the [ioredis](htt
 * [Usage example](#usage-example)
 * [Msgpack implentation](#msgpack-implentation)
 * [API reference](#api-reference)
-* [Testing](#testing)
+* [Debugging](#debugging)
 * [Contributions](#contributions)
 * [Changelog](#changelog)
 
@@ -31,9 +31,13 @@ npm install --save tarantool-driver
 ```
 ## Configuration
 
-new Tarantool([port], [host], [options])
+new Tarantool([port], [host], [options]) ⇐ <code>[EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter)</code></dt>
 
-Creates a Tarantool instance
+Creates a Tarantool instance, extends [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter).
+
+Connection related custom events:
+* "reconnecting" - emitted when the client try to reconnect, first argument is retry delay in ms.
+* "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is an object with host and port of the Taranool server.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -257,9 +261,9 @@ Disconnect from Tarantool.
 This method closes the connection immediately,
 and may lose some pending replies that haven't written to client.
 
-## Testing
+## Debugging
 
-**npm test**
+Set environment variable "DEBUG" to "tarantool-driver:*"
 
 ## Contributions
 
