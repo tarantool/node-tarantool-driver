@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./lib ./test",
-    "test": "mocha -t 5000"
+    "test": "mocha -t 5000",
+    "benchmark-read": "node benchmark/read",
+    "benchmark-write": "node benchmark/write"
   },
   "repository": {
     "type": "git",
