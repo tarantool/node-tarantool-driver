@@ -20,7 +20,7 @@ Code architecture and some features in version 3 borrowed from the [ioredis](htt
 * [Usage example](#usage-example)
 * [Msgpack implentation](#msgpack-implentation)
 * [API reference](#api-reference)
-* [Testing](#testing)
+* [Debugging](#debugging)
 * [Contributions](#contributions)
 * [Changelog](#changelog)
 
@@ -261,9 +261,9 @@ Disconnect from Tarantool.
 This method closes the connection immediately,
 and may lose some pending replies that haven't written to client.
 
-## Testing
+## Debugging
 
-**npm test**
+Set environment variable "DEBUG" to "tarantool-driver:*"
 
 ## Contributions
 
