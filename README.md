@@ -18,7 +18,7 @@ Code architecture and some features in version 3 borrowed from the [ioredis](htt
 * [Installation](#installation)
 * [Configuration](#configuration)
 * [Usage example](#usage-example)
-* [Msgpack implentation](#msgpack-implentation)
+* [Msgpack implementation](#msgpack-implementation)
 * [API reference](#api-reference)
 * [Debugging](#debugging)
 * [Contributions](#contributions)
@@ -119,7 +119,7 @@ conn.select(512, 0, 1, 0, 'eq', [50])
 ```
 
 
-## Msgpack implentation
+## Msgpack implementation
 
 You can use any implementation that can be duck typing with next interface:
 
