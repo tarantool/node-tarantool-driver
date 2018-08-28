@@ -1,5 +1,6 @@
-// module.exports = require('./lib/connection.js');
-let T = require('./lib/connection.js');
+module.exports = require('./lib/connection.js');
+/*
+ let T = require('./lib/connection.js');
 let conn = new T({port: 3313});
 conn.connect()
     .then(()=>{console.log('connected 1')})
@@ -7,3 +8,4 @@ conn.connect()
 // conn.connect()
 //     .then(()=>{console.log('connected')})
 //     .catch((e)=>{console.log(e)});
+*/
