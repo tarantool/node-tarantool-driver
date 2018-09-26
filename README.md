@@ -272,7 +272,7 @@ It's ok you can do whatever you need. I add log options for some technical infor
 ## Changelog
 
 
-### 3.0.1
+### 3.0.2
 
 Fix parser thx @tommiv
 
