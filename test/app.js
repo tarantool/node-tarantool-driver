@@ -13,6 +13,7 @@ var stub = sinon.stub.bind(sinon);
 var fs = require('fs');
 var assert = require('assert');
 var TarantoolConnection = require('../lib/connection');
+var SliderBuffer = require('../lib/sliderBuffer');
 var mlite = require('msgpack-lite');
 var conn;
 
@@ -741,3 +742,5 @@ describe('connection test with custom msgpack implementation', function(){
 			.catch(function(e){done(e);});
 	});
 });
+describe('slider buffer', function(){
+})
