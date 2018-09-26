@@ -271,6 +271,11 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ## Changelog
 
+
+### 3.0.1
+
+Fix parser thx @tommiv
+
 ### 3.0.0
 
 New version with reconnect in alpha.
