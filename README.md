@@ -271,6 +271,9 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ## Changelog
 
+### 3.0.3
+
+Increase request id limit to SMI Maximum
 
 ### 3.0.2
 
