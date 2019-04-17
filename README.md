@@ -68,7 +68,7 @@ let connection = new Tarantool({
     ],
     beforeReserve: 1
 })
-// connect to mail.ru:33013 -> dead 
+// connect to mail.ru:33013 -> dead
 //                  ↓
 // trying connect to mail.ru:33033 -> dead
 //                  ↓
@@ -161,7 +161,7 @@ Auth with using [chap-sha1](http://tarantool.org/doc/book/box/box_space.html). A
 
 It's just select. Promise resolve array of tuples.
 
-Some examples: 
+Some examples:
 
 ```
 conn.select(512, 0, 1, 0, 'eq', [50]);
@@ -197,7 +197,7 @@ About operation: [Upsert](http://tarantool.org/doc/book/box/box_space.html#lua-f
 
 [Possible operators.](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.update)
 
-Promise resolve nothing.   
+Promise resolve nothing.
 
 ### tarantool.replace(spaceId: Number or String, tuple: tuple) ⇒ <code>Promise</code>
 
@@ -209,7 +209,7 @@ Promise resolve a new or replaced tuple.
 
 Call a function with arguments.
 
-You can create function on tarantool side: 
+You can create function on tarantool side:
 ```
 function myget(id)
     val = box.space.batched:select{id}
@@ -271,6 +271,10 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ## Changelog
 
+### 3.0.4
+
+Fix eval and call
+
 ### 3.0.3
 
 Increase request id limit to SMI Maximum
@@ -293,12 +297,12 @@ Add clear schema cache on change schema id
 
 ### 0.4.0
 
-Change msgpack5 to msgpack-lite(thx to @arusakov).  
-Add msgpack as option for connection.   
+Change msgpack5 to msgpack-lite(thx to @arusakov).
+Add msgpack as option for connection.
 Bump msgpack5 for work at new version.
 
 ### 0.3.0
-Add upsert operation.  
+Add upsert operation.
 Key is now can be just a number.
 
 ## ToDo
