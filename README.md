@@ -1,8 +1,8 @@
-# Node.js driver for tarantool 1.6+
+# Node.js driver for tarantool 1.7+
 
 [![Build Status](https://travis-ci.org/tarantool/node-tarantool-driver.svg)](https://travis-ci.org/tarantool/node-tarantool-driver)
 
-Node tarantool driver for 1.6 support Node.js v.4+.
+Node tarantool driver for 1.7+ support Node.js v.4+.
 
 Based on [go-tarantool](https://github.com/tarantool/go-tarantool) and implements [Tarantool’s binary protocol](http://tarantool.org/doc/dev_guide/box-protocol.html), for more information you can read them or basic documentation at [Tarantool manual](http://tarantool.org/doc/).
 
@@ -298,6 +298,10 @@ Set environment variable "DEBUG" to "tarantool-driver:*"
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
+
+### 3.0.6
+
+Remove let for support old nodejs version
 
 ### 3.0.5
 
