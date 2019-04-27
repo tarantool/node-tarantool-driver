@@ -185,7 +185,7 @@ Promise resolve an array of deleted tuples.
 
 Promise resolve an array of updated tuples.
 
-### tarantool.insert() ⇒ <code>Promise</code>
+### tarantool.insert(spaceId: Number or String, tuple) ⇒ <code>Promise</code>
 
 More you can read here: [Insert](https://tarantool.org/doc/book/box/box_space.html#lua-function.space_object.insert)
 
@@ -249,6 +249,34 @@ conn.eval('return box.session.user()')
     })
 ```
 
+### tarantool.sql(query: String, bindParams: Array) -> <code>Promise</code>
+
+It's accessible only in 2.1 tarantool.
+
+You can use SQL query that is like sqlite dialect to query a tarantool database.
+
+You can insert or select or create database.
+
+More about it [here](https://www.tarantool.io/en/doc/2.1/tutorials/sql_tutorial/).
+
+Example:
+
+```
+await connection.insert('tags', ['tag_1', 1])
+await connection.insert('tags', ['tag_2', 50])
+connection.sql('select * from "tags"')
+.then((res) => {
+  console.log('Successful get tags', res);
+})
+.catch((error) => {
+  console.log(error);
+});
+```
+
+P.S. If you using lowercase in your space name you need to use a double quote for their name.
+
+It doesn't work for space without format.
+
 ### tarantool.ping() ⇒ <code>Promise</code>
 
 Promise resolve true.
@@ -270,6 +298,10 @@ Set environment variable "DEBUG" to "tarantool-driver:*"
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
+
+### 3.0.5
+
+Add support SQL
 
 ### 3.0.4
 
