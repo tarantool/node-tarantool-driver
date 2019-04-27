@@ -1,7 +1,7 @@
 {
   "name": "tarantool-driver",
-  "version": "3.0.5",
-  "description": "Tarantool driver for 1.7",
+  "version": "3.0.6",
+  "description": "Tarantool driver for 1.7+",
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./lib ./test",
