@@ -299,6 +299,11 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ## Changelog
 
+### 3.0.7
+
+Fix in header decoding to support latest Tarantool versions.
+Update to tests to support latest Tarantool versions.
+
 ### 3.0.6
 
 Remove let for support old nodejs version

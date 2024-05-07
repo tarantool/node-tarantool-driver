@@ -230,7 +230,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen).to.eql('33014');
+						expect(res[0].listen.toString()).to.eql('33014');
 						exec('docker kill reserve', function(error, stdout, stderr){
 							if(error){
 								done(error);
@@ -246,7 +246,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen).to.eql('33015');
+						expect(res[0].listen.toString()).to.eql('33015');
 						exec('docker kill reserve_2', function(error, stdout, stderr){
 							if(error){
 								done(error);
@@ -261,7 +261,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen).to.eql('33013');
+						expect(res[0].listen.toString()).to.eql('33013');
 						done();
 					})
 					.catch(function(e){
@@ -355,7 +355,7 @@ describe('instant connection', function(){
 		conn = new TarantoolConnection({port: 33013, username: 'userloser', password: 'test'});
 		conn.eval('return func_foo()')
 			.catch(function (err) {
-				expect(err.message).to.match(/User 'userloser' is not found/);
+				expect(err.message).to.include("not found");
 				conn.disconnect();
 				done();
 			});

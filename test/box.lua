@@ -21,7 +21,7 @@ if not box.space.test then
    local test = box.schema.space.create('test')
    test:create_index('primary',   {type = 'TREE', unique = true, parts = {1, 'NUM'}})
    test:create_index('secondary', {type = 'TREE', unique = false, parts = {2, 'NUM', 3, 'STR'}})
-   box.schema.user.grant('test', 'read,write,execute', 'space', 'test')
+   box.schema.user.grant('test', 'read,write', 'space', 'test')
 end
 
 function test_delete(num)
@@ -47,7 +47,7 @@ end
 if not box.space.batched then
     local batched = box.schema.space.create('batched')
     batched:create_index('primary', {type = 'TREE', unique = true, parts = {1, 'NUM'}})
-    box.schema.user.grant('test', 'read,write,execute', 'space', 'batched')
+    box.schema.user.grant('test', 'read,write', 'space', 'batched')
 end
 
 function batch (data)
@@ -65,14 +65,14 @@ end
 if not box.space.toaddmore then
     local toaddmore = box.schema.space.create('toaddmore')
     toaddmore:create_index('primary', {type = 'TREE', unique = true, parts = {1, 'STR'}})
-    box.schema.user.grant('test', 'read,write,execute', 'space', 'toaddmore')
-    box.schema.user.grant('test', 'read,write,execute', 'space', '_index')
+    box.schema.user.grant('test', 'read,write', 'space', 'toaddmore')
+    box.schema.user.grant('test', 'read,write', 'space', '_index')
 end
 
 if not box.space.upstest then
     local s = box.schema.space.create('upstest')
     s:create_index('primary', {type = 'TREE', unique = true, parts = {1, 'NUM'}})
-    box.schema.user.grant('test', 'read,write,execute', 'space', 'upstest')
+    box.schema.user.grant('test', 'read,write', 'space', 'upstest')
 end
 
 function clearaddmore()
