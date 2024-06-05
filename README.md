@@ -26,7 +26,7 @@ Code architecture and some features in version 3 borrowed from the [ioredis](htt
 
 ## Installation
 
-```
+```Bash
 npm install --save tarantool-driver
 ```
 ## Configuration
@@ -43,12 +43,15 @@ Connection related custom events:
 | --- | --- | --- | --- |
 | [port] | <code>number</code> \| <code>string</code> \| <code>Object</code> | <code>3301</code> | Port of the Tarantool server, or a URI string (see the examples in [tarantool configuration doc](https://tarantool.org/en/doc/reference/configuration/index.html#uri)), or the `options` object(see the third argument). |
 | [host] | <code>string</code> \| <code>Object</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server, when the first argument is a URL string, this argument is an object represents the options. |
-| [options] | <code>Object</code> |  | Other options. |
+| [path] | <code>string</code> \| <code>Object</code> | <code>null</code> | Unix socket path of the Tarantool server. |
+| [options] | <code>Object</code> |  | Other options, including all from [net.createConnection](https://nodejs.org/api/net.html#netcreateconnection). |
 | [options.port] | <code>number</code> | <code>6379</code> | Port of the Tarantool server. |
 | [options.host] | <code>string</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server. |
 | [options.username] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
 | [options.timeout] | <code>number</code> | <code>0</code> | The milliseconds before a timeout occurs during the initial connection to the Tarantool server. |
+| [options.keepAlive] | <code>boolean</code> | <code>true</code> | Enables keep-alive functionality (recommended). |
+| [options.noDelay] | <code>boolean</code> | <code>true</code> | Disables the use of Nagle's algorithm (recommended). |
 | [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Tarantool` instance is created, it will connect to Tarantool server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor. |
 | [options.reserveHosts] | <code>array</code> | [] | Array of [strings](https://tarantool.org/en/doc/reference/configuration/index.html?highlight=uri#uri)  - reserve hosts. Client will try to connect to hosts from this array after loosing connection with current host and will do it cyclically. See example below.|
 | [options.beforeReserve] | <code>number</code> | <code>2</code> | Number of attempts to reconnect before connect to next host from the <code>reserveHosts</code> |
@@ -85,7 +88,7 @@ except when the connection is closed manually by `tarantool.disconnect()`.
 It's very flexible to control how long to wait to reconnect after disconnection
 using the `retryStrategy` option:
 
-```javascript
+```Javascript
 var tarantool = new Tarantool({
   // This is the default value of `retryStrategy`
   retryStrategy: function (times) {
@@ -107,7 +110,7 @@ will be lost forever if the user doesn't call `tarantool.connect()` manually.
 ## Usage example
 
 We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
-```
+```Javascript
 var TarantoolConnection = require('tarantool-driver');
 var conn = new TarantoolConnection('notguest:sesame@mail.ru:3301');
 
@@ -123,8 +126,7 @@ conn.select(512, 0, 1, 0, 'eq', [50])
 
 You can use any implementation that can be duck typing with next interface:
 
-```
-
+```Javascript
 //msgpack implementation example
 /*
     @interface
@@ -155,6 +157,18 @@ Resolve if connected. Or reject if not.
 
 Auth with using [chap-sha1](http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: [authentication](http://tarantool.org/doc/book/box/authentication.html)
 
+### tarantool.packAs.uuid(uuid: String)
+
+**Method for converting [UUID values](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#uuid) to Tarantool-compatible format.**
+
+If passing UUID without converion via this method, server will accept it as simple String.
+
+### tarantool.packAs.decimal(numberToConvert: Number)
+
+**Method for converting Numbers (Float or Integer) to Tarantool [Decimal](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#decimal) type.**
+
+If passing number without converion via this method, server will accept it as Integer or Double (for JS Float type).
+
 ### tarantool.select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) ⇒ <code>Promise</code>
 
 [Iterators](http://tarantool.org/doc/book/box/box_index.html). Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
@@ -163,13 +177,28 @@ It's just select. Promise resolve array of tuples.
 
 Some examples:
 
-```
+```Javascript
 conn.select(512, 0, 1, 0, 'eq', [50]);
 //same as
 conn.select('test', 'primary', 1, 0, 'eq', [50]);
 ```
 
 You can use space name or index name instead of id, but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
+
+You can create space 'users' on Tarantool side, where the 'id' index is of UUID type:
+
+```lua
+-- example schema of such space
+box.schema.space.create("users", {engine = 'memtx'})
+box.space.users:format({
+    {name = 'id', type = 'uuid', is_nullable = false},
+    {name = 'username', type = 'string', is_nullable = false}
+})
+```
+And then select some tuples on a client side:
+```Javascript
+conn.select('users', 'id', 1, 0, 'eq', [conn.packAs.uuid('550e8400-e29b-41d4-a716-446655440000')]);
+```
 
 ### tarantool.selectCb(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple, callback: function(success), callback: function(error))
 
@@ -210,7 +239,7 @@ Promise resolve a new or replaced tuple.
 Call a function with arguments.
 
 You can create function on tarantool side:
-```
+```Lua
 function myget(id)
     val = box.space.batched:select{id}
     return val[1]
@@ -218,7 +247,7 @@ end
 ```
 
 And then use something like this:
-```
+```Javascript
 conn.call('myget', 4)
     .then(function(value){
         console.log(value);
@@ -226,7 +255,7 @@ conn.call('myget', 4)
 ```
 
 If you have a 2 arguments function just send a second arguments in this way:
-```
+```Javascript
 conn.call('my2argumentsfunc', 'first', 'second argument')
 ```
 And etc like this.
@@ -242,7 +271,7 @@ Promise resolve result:any.
 Example:
 
 
-```
+```Javascript
 conn.eval('return box.session.user()')
     .then(function(res){
         console.log('current user is:' res[0])
@@ -261,7 +290,7 @@ More about it [here](https://www.tarantool.io/en/doc/2.1/tutorials/sql_tutorial/
 
 Example:
 
-```
+```Javascript
 await connection.insert('tags', ['tag_1', 1])
 await connection.insert('tags', ['tag_2', 50])
 connection.sql('select * from "tags"')
@@ -298,11 +327,6 @@ Set environment variable "DEBUG" to "tarantool-driver:*"
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
-
-### 3.0.7
-
-Fix in header decoding to support latest Tarantool versions.
-Update to tests to support latest Tarantool versions.
 
 ### 3.0.6
 

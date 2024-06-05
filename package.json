@@ -18,7 +18,9 @@
     "tarantool",
     "driver",
     "db",
-    "msgpack"
+    "msgpack",
+    "tarantool client",
+    "tarantool connector"
   ],
   "author": "KlonD90",
   "license": "MIT",
@@ -30,7 +32,8 @@
     "debug": "^2.6.8",
     "denque": "^1.2.1",
     "lodash": "^4.17.4",
-    "msgpack-lite": "^0.1.20"
+    "msgpack-lite": "^0.1.20",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "benchmark": "^2.1.0",
