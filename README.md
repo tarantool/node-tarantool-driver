@@ -6,7 +6,7 @@ Node tarantool driver for 1.7+ support Node.js v.4+.
 
 Based on [go-tarantool](https://github.com/tarantool/go-tarantool) and implements [Tarantool’s binary protocol](http://tarantool.org/doc/dev_guide/box-protocol.html), for more information you can read them or basic documentation at [Tarantool manual](http://tarantool.org/doc/).
 
-Code architecture and some features in version 3 borrowed from the [ioredis](https://github.com/luin/ioredis).
+Code architecture and some features in version 3 borrowed from the [ioTarantool](https://github.com/luin/ioTarantool).
 
 [msgpack-lite](https://github.com/kawanet/msgpack-lite) package used as MsgPack encoder/decoder.
 
@@ -38,6 +38,7 @@ Creates a Tarantool instance, extends [EventEmitter](http://nodejs.org/api/event
 Connection related custom events:
 * "reconnecting" - emitted when the client try to reconnect, first argument is retry delay in ms.
 * "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is an object with host and port of the Taranool server.
+* "change_host" - emitted when 'nonWritableHostPolicy' option is set and write error occurs, first argument is the text of error which provoked the host to be changed.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -53,6 +54,13 @@ Connection related custom events:
 | [options.keepAlive] | <code>boolean</code> | <code>true</code> | Enables keep-alive functionality (recommended). |
 | [options.noDelay] | <code>boolean</code> | <code>true</code> | Disables the use of Nagle's algorithm (recommended). |
 | [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Tarantool` instance is created, it will connect to Tarantool server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor. |
+| [options.nonWritableHostPolicy] | <code>string</code> | <code>null</code> | What to do when Tarantool server rejects write operation, e.g. because of box.cfg.read_only set to 'true' or during snapshot fetching.
+Possible values are: 
+- null: just rejects Promise with an error
+- 'changeHost': disconnect from the current host and connect to the next from 'reserveHosts'. Pending Promise will be rejected.
+- 'changeAndRetry': same as 'changeHost', but after reconnecting tries to run the command again in order to fullfil the Promise |
+| [options.maxRetriesPerRequest] | <code>number</code> | <code>5</code> | Number of attempts to find the alive host if 'nonWritableHostPolicy' is not null. |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | By default, if there is no active connection to the Tarantool server, commands are added to a queue and are executed once the connection is "ready", meaning the connection to the Tarantool server has been established and auth passed ('connect' event is also executed at this moment). If this option is false, when execute the command when the connection isn't ready, an error will be returned. |
 | [options.reserveHosts] | <code>array</code> | [] | Array of [strings](https://tarantool.org/en/doc/reference/configuration/index.html?highlight=uri#uri)  - reserve hosts. Client will try to connect to hosts from this array after loosing connection with current host and will do it cyclically. See example below.|
 | [options.beforeReserve] | <code>number</code> | <code>2</code> | Number of attempts to reconnect before connect to next host from the <code>reserveHosts</code> |
 | [options.retryStrategy] | <code>function</code> |  | See below |
@@ -105,7 +113,7 @@ the return value represents how long (in ms) to wait to reconnect. When the
 return value isn't a number, node-tarantool-driver will stop trying to reconnect, and the connection
 will be lost forever if the user doesn't call `tarantool.connect()` manually.
 
-**This feature is borrowed from the [ioredis](https://github.com/luin/ioredis)**
+**This feature is borrowed from the [ioTarantool](https://github.com/luin/ioTarantool)**
 
 ## Usage example
 

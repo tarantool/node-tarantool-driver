@@ -20,7 +20,8 @@
     "db",
     "msgpack",
     "tarantool client",
-    "tarantool connector"
+    "tarantool connector",
+    "in-memory"
   ],
   "author": "KlonD90",
   "license": "MIT",
