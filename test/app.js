@@ -52,6 +52,9 @@ describe('constructor', function () {
 			expect(option).to.have.property('username', 'notguest');
 			expect(option).to.have.property('password', 'sesame');
 
+			option = getOption('/var/run/tarantool/unix.sock');
+			expect(option).to.have.property('path', '/var/run/tarantool/unix.sock');
+
 			option = getOption({
 				port: 6380,
 				host: '192.168.1.1'
@@ -78,6 +81,7 @@ describe('constructor', function () {
 				{
 					port:	6380,
 					host: '192.168.1.1',
+					path: null,
 					username: null,
 					password: null
 				},

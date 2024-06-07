@@ -16,11 +16,11 @@ conn.connect()
 			function callback(){
 				defer.resolve();
 			}
-			conn.selectCb(512, 0, 1, 0, 'eq', ['test'], callback, console.error);
+			conn.selectCb('counter', 0, 1, 0, 'eq', ['test'], callback, console.error);
 		}});
 
 		suite.add('select promise', {defer: true, fn: function(defer){
-			conn.select(512, 0, 1, 0, 'eq', ['test'])
+			conn.select('counter', 0, 1, 0, 'eq', ['test'])
 				.then(function(){ defer.resolve();});
 		}});
 
@@ -28,7 +28,7 @@ conn.connect()
 			try{
 				promises = [];
 				for (let l=0;l<500;l++){
-					promises.push(conn.select(512, 0, 1, 0, 'eq', ['test']));
+					promises.push(conn.select('counter', 0, 1, 0, 'eq', ['test']));
 				}
 				var chain = Promise.all(promises);
 				chain.then(function(){ defer.resolve(); })
@@ -51,7 +51,7 @@ conn.connect()
 						promises = [];
 						for (var l=0;l<10;l++){
 							promises.push(
-								conn.select(512, 0, 1, 0, 'eq', ['test'])
+								conn.select('counter', 0, 1, 0, 'eq', ['test'])
 							);
 						}
 						return Promise.all(promises);
@@ -76,7 +76,7 @@ conn.connect()
 						promises = [];
 						for (var l=0;l<50;l++){
 							promises.push(
-								conn.select(512, 0, 1, 0, 'eq', ['test'])
+								conn.select('counter', 0, 1, 0, 'eq', ['test'])
 							);
 						}
 						return Promise.all(promises);

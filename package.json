@@ -37,7 +37,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
-    "benchmark": "^2.1.0",
+    "benchmark": "^2.1.4",
     "chai": "^4.1.0",
     "coveralls": "^2.13.1",
     "eslint": "^2.5.3",
@@ -45,6 +45,7 @@
     "istanbul": "^0.4.5",
     "mocha": "^2.2.4",
     "nanotimer": "^0.3.14",
+    "nyc": "^15.1.0",
     "sinon": "^3.0.0"
   }
 }

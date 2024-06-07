@@ -1,5 +1,6 @@
 #!/usr/bin/env tarantool
 box.cfg{listen=33013}
+
 lp = {
    test = 'test',
    test_empty = '',

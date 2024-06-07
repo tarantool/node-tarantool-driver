@@ -376,4 +376,7 @@ Key is now can be just a number.
 
 ## ToDo
 
-finish multihost feature
+1. Streams
+2. Events and subscriptions
+3. Graceful shutdown protocol
+4. Prepared SQL statements
