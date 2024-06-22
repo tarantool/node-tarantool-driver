@@ -161,17 +161,23 @@ Resolve if connected. Or reject if not.
 
 Auth with using [chap-sha1](http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: [authentication](http://tarantool.org/doc/book/box/authentication.html)
 
-### tarantool.packAs.uuid(uuid: String)
+### tarantool.packUuid(uuid: String)
 
 **Method for converting [UUID values](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#uuid) to Tarantool-compatible format.**
 
 If passing UUID without converion via this method, server will accept it as simple String.
 
-### tarantool.packAs.decimal(numberToConvert: Number)
+### tarantool.packDecimal(numberToConvert: Number)
 
 **Method for converting Numbers (Float or Integer) to Tarantool [Decimal](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#decimal) type.**
 
 If passing number without converion via this method, server will accept it as Integer or Double (for JS Float type).
+
+### tarantool.packInteger(numberToConvert: Number)
+
+**Method for safely passing numbers up to int64 to bind params**
+
+Otherwise msgpack will encode anything bigger than int32 as a double number.
 
 ### tarantool.select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) ⇒ <code>Promise</code>
 
@@ -201,7 +207,7 @@ box.space.users:format({
 ```
 And then select some tuples on a client side:
 ```Javascript
-conn.select('users', 'id', 1, 0, 'eq', [conn.packAs.uuid('550e8400-e29b-41d4-a716-446655440000')]);
+conn.select('users', 'id', 1, 0, 'eq', [conn.packUuid('550e8400-e29b-41d4-a716-446655440000')]);
 ```
 
 ### tarantool.selectCb(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple, callback: function(success), callback: function(error))
@@ -331,6 +337,19 @@ Set environment variable "DEBUG" to "tarantool-driver:*"
 It's ok you can do whatever you need. I add log options for some technical information it can be help for you. If i don't answer i just miss email :( it's a lot emails from github so please write me to newbiecraft@gmail.com directly if i don't answer in one day.
 
 ## Changelog
+
+### 4.0.0
+
+- Added 3 new msgpack extensions: UUID, Datetime, Decimal.
+- Connection object now accepts all options of `net.createConnection()`, including Unix socket path.
+- New `nonWritableHostPolicy` and related options, which improves a high availability capabilities without any 3rd parties.
+- Ability to disable the offline queue.
+- Fixed [bug with int32](https://github.com/tarantool/node-tarantool-driver/issues/48) numbers when it was encoded as floating. Use method `packInteger()` to solve this.
+- `selectCb()` now also accepts `spaceId` and `indexId` as their String names, not only their IDs.
+
+### 3.0.7
+
+Fix in header decoding to support latest Tarantool versions. Update to tests to support latest Tarantool versions.
 
 ### 3.0.6
 

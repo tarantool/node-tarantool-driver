@@ -1,6 +1,6 @@
 {
   "name": "tarantool-driver",
-  "version": "3.0.6",
+  "version": "4.0.0",
   "description": "Tarantool driver for 1.7+",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,13 @@
     "msgpack",
     "tarantool client",
     "tarantool connector",
-    "in-memory"
+    "in memory",
+    "in-memory",
+    "in memory storage",
+    "in-memory storage",
+    "in memory database",
+    "in-memory database",
+    "database"
   ],
   "author": "KlonD90",
   "license": "MIT",
@@ -32,6 +38,7 @@
   "dependencies": {
     "debug": "^2.6.8",
     "denque": "^1.2.1",
+    "int64-buffer": "^1.0.1",
     "lodash": "^4.17.4",
     "msgpack-lite": "^0.1.20",
     "uuid": "^9.0.0"
@@ -39,7 +46,7 @@
   "devDependencies": {
     "benchmark": "^2.1.4",
     "chai": "^4.1.0",
-    "coveralls": "^2.13.1",
+    "coveralls": "^2.13.3",
     "eslint": "^2.5.3",
     "ioredis": "^3.1.2",
     "istanbul": "^0.4.5",
