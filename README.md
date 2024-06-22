@@ -6,7 +6,7 @@ Node tarantool driver for 1.7+ support Node.js v.4+.
 
 Based on [go-tarantool](https://github.com/tarantool/go-tarantool) and implements [Tarantool’s binary protocol](http://tarantool.org/doc/dev_guide/box-protocol.html), for more information you can read them or basic documentation at [Tarantool manual](http://tarantool.org/doc/).
 
-Code architecture and some features in version 3 borrowed from the [ioredis](https://github.com/luin/ioredis).
+Code architecture and some features in version 3 borrowed from the [ioTarantool](https://github.com/luin/ioTarantool).
 
 [msgpack-lite](https://github.com/kawanet/msgpack-lite) package used as MsgPack encoder/decoder.
 
@@ -26,7 +26,7 @@ Code architecture and some features in version 3 borrowed from the [ioredis](htt
 
 ## Installation
 
-```
+```Bash
 npm install --save tarantool-driver
 ```
 ## Configuration
@@ -38,18 +38,25 @@ Creates a Tarantool instance, extends [EventEmitter](http://nodejs.org/api/event
 Connection related custom events:
 * "reconnecting" - emitted when the client try to reconnect, first argument is retry delay in ms.
 * "connect" - emitted when the client connected and auth passed (if username and password provided), first argument is an object with host and port of the Taranool server.
+* "change_host" - emitted when `nonWritableHostPolicy` option is set and write error occurs, first argument is the text of error which provoked the host to be changed.
 
 | Param | Type | Default | Description |
 | --- | --- | --- | --- |
 | [port] | <code>number</code> \| <code>string</code> \| <code>Object</code> | <code>3301</code> | Port of the Tarantool server, or a URI string (see the examples in [tarantool configuration doc](https://tarantool.org/en/doc/reference/configuration/index.html#uri)), or the `options` object(see the third argument). |
 | [host] | <code>string</code> \| <code>Object</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server, when the first argument is a URL string, this argument is an object represents the options. |
-| [options] | <code>Object</code> |  | Other options. |
+| [path] | <code>string</code> \| <code>Object</code> | <code>null</code> | Unix socket path of the Tarantool server. |
+| [options] | <code>Object</code> |  | Other options, including all from [net.createConnection](https://nodejs.org/api/net.html#netcreateconnection). |
 | [options.port] | <code>number</code> | <code>6379</code> | Port of the Tarantool server. |
 | [options.host] | <code>string</code> | <code>&quot;localhost&quot;</code> | Host of the Tarantool server. |
 | [options.username] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
 | [options.password] | <code>string</code> | <code>null</code> | If set, client will authenticate with the value of this option when connected. |
 | [options.timeout] | <code>number</code> | <code>0</code> | The milliseconds before a timeout occurs during the initial connection to the Tarantool server. |
+| [options.keepAlive] | <code>boolean</code> | <code>true</code> | Enables keep-alive functionality (recommended). |
+| [options.noDelay] | <code>boolean</code> | <code>true</code> | Disables the use of Nagle's algorithm (recommended). |
 | [options.lazyConnect] | <code>boolean</code> | <code>false</code> | By default, When a new `Tarantool` instance is created, it will connect to Tarantool server automatically. If you want to keep disconnected util a command is called, you can pass the `lazyConnect` option to the constructor. |
+| [options.nonWritableHostPolicy] | <code>string</code> | <code>null</code> | What to do when Tarantool server rejects write operation, e.g. because of `box.cfg.read_only` set to `true` or during snapshot fetching. <br /> Possible values are: <br /> - `null`: just rejects Promise with an error <br /> - `changeHost`: disconnect from the current host and connect to the next from `reserveHosts`. Pending Promise will be rejected. <br /> - `changeAndRetry`: same as `changeHost`, but after reconnecting tries to run the command again in order to fullfil the Promise |
+| [options.maxRetriesPerRequest] | <code>number</code> | <code>5</code> | Number of attempts to find the alive host if `nonWritableHostPolicy` is not null. |
+| [options.enableOfflineQueue] | <code>boolean</code> | <code>true</code> | By default, if there is no active connection to the Tarantool server, commands are added to a queue and are executed once the connection is "ready", meaning the connection to the Tarantool server has been established and auth passed (`connect` event is also executed at this moment). If this option is false, when execute the command when the connection isn't ready, an error will be returned. |
 | [options.reserveHosts] | <code>array</code> | [] | Array of [strings](https://tarantool.org/en/doc/reference/configuration/index.html?highlight=uri#uri)  - reserve hosts. Client will try to connect to hosts from this array after loosing connection with current host and will do it cyclically. See example below.|
 | [options.beforeReserve] | <code>number</code> | <code>2</code> | Number of attempts to reconnect before connect to next host from the <code>reserveHosts</code> |
 | [options.retryStrategy] | <code>function</code> |  | See below |
@@ -85,7 +92,7 @@ except when the connection is closed manually by `tarantool.disconnect()`.
 It's very flexible to control how long to wait to reconnect after disconnection
 using the `retryStrategy` option:
 
-```javascript
+```Javascript
 var tarantool = new Tarantool({
   // This is the default value of `retryStrategy`
   retryStrategy: function (times) {
@@ -102,12 +109,12 @@ the return value represents how long (in ms) to wait to reconnect. When the
 return value isn't a number, node-tarantool-driver will stop trying to reconnect, and the connection
 will be lost forever if the user doesn't call `tarantool.connect()` manually.
 
-**This feature is borrowed from the [ioredis](https://github.com/luin/ioredis)**
+**This feature is borrowed from the [ioTarantool](https://github.com/luin/ioTarantool)**
 
 ## Usage example
 
 We use TarantoolConnection instance and connect before other operations. Methods call return promise(https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Promise). Available methods with some testing: select, update, replace, insert, delete, auth, destroy.
-```
+```Javascript
 var TarantoolConnection = require('tarantool-driver');
 var conn = new TarantoolConnection('notguest:sesame@mail.ru:3301');
 
@@ -123,8 +130,7 @@ conn.select(512, 0, 1, 0, 'eq', [50])
 
 You can use any implementation that can be duck typing with next interface:
 
-```
-
+```Javascript
 //msgpack implementation example
 /*
     @interface
@@ -155,6 +161,24 @@ Resolve if connected. Or reject if not.
 
 Auth with using [chap-sha1](http://tarantool.org/doc/book/box/box_space.html). About authenthication more here: [authentication](http://tarantool.org/doc/book/box/authentication.html)
 
+### tarantool.packUuid(uuid: String)
+
+**Method for converting [UUID values](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#uuid) to Tarantool-compatible format.**
+
+If passing UUID without converion via this method, server will accept it as simple String.
+
+### tarantool.packDecimal(numberToConvert: Number)
+
+**Method for converting Numbers (Float or Integer) to Tarantool [Decimal](https://www.tarantool.io/ru/doc/latest/concepts/data_model/value_store/#decimal) type.**
+
+If passing number without converion via this method, server will accept it as Integer or Double (for JS Float type).
+
+### tarantool.packInteger(numberToConvert: Number)
+
+**Method for safely passing numbers up to int64 to bind params**
+
+Otherwise msgpack will encode anything bigger than int32 as a double number.
+
 ### tarantool.select(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple) ⇒ <code>Promise</code>
 
 [Iterators](http://tarantool.org/doc/book/box/box_index.html). Available iterators: 'eq', 'req', 'all', 'lt', 'le', 'ge', 'gt', 'bitsAllSet', 'bitsAnySet', 'bitsAllNotSet'.
@@ -163,13 +187,28 @@ It's just select. Promise resolve array of tuples.
 
 Some examples:
 
-```
+```Javascript
 conn.select(512, 0, 1, 0, 'eq', [50]);
 //same as
 conn.select('test', 'primary', 1, 0, 'eq', [50]);
 ```
 
 You can use space name or index name instead of id, but it will some requests for get this metadata. That information actual for delete, replace, insert, update too.
+
+You can create space 'users' on Tarantool side, where the 'id' index is of UUID type:
+
+```lua
+-- example schema of such space
+box.schema.space.create("users", {engine = 'memtx'})
+box.space.users:format({
+    {name = 'id', type = 'uuid', is_nullable = false},
+    {name = 'username', type = 'string', is_nullable = false}
+})
+```
+And then select some tuples on a client side:
+```Javascript
+conn.select('users', 'id', 1, 0, 'eq', [conn.packUuid('550e8400-e29b-41d4-a716-446655440000')]);
+```
 
 ### tarantool.selectCb(spaceId: Number or String, indexId: Number or String, limit: Number, offset: Number, iterator: Iterator,  key: tuple, callback: function(success), callback: function(error))
 
@@ -210,7 +249,7 @@ Promise resolve a new or replaced tuple.
 Call a function with arguments.
 
 You can create function on tarantool side:
-```
+```Lua
 function myget(id)
     val = box.space.batched:select{id}
     return val[1]
@@ -218,7 +257,7 @@ end
 ```
 
 And then use something like this:
-```
+```Javascript
 conn.call('myget', 4)
     .then(function(value){
         console.log(value);
@@ -226,7 +265,7 @@ conn.call('myget', 4)
 ```
 
 If you have a 2 arguments function just send a second arguments in this way:
-```
+```Javascript
 conn.call('my2argumentsfunc', 'first', 'second argument')
 ```
 And etc like this.
@@ -242,7 +281,7 @@ Promise resolve result:any.
 Example:
 
 
-```
+```Javascript
 conn.eval('return box.session.user()')
     .then(function(res){
         console.log('current user is:' res[0])
@@ -261,7 +300,7 @@ More about it [here](https://www.tarantool.io/en/doc/2.1/tutorials/sql_tutorial/
 
 Example:
 
-```
+```Javascript
 await connection.insert('tags', ['tag_1', 1])
 await connection.insert('tags', ['tag_2', 50])
 connection.sql('select * from "tags"')
@@ -299,10 +338,18 @@ It's ok you can do whatever you need. I add log options for some technical infor
 
 ## Changelog
 
+### 4.0.0
+
+- Added 3 new msgpack extensions: UUID, Datetime, Decimal.
+- Connection object now accepts all options of `net.createConnection()`, including Unix socket path.
+- New `nonWritableHostPolicy` and related options, which improves a high availability capabilities without any 3rd parties.
+- Ability to disable the offline queue.
+- Fixed [bug with int32](https://github.com/tarantool/node-tarantool-driver/issues/48) numbers when it was encoded as floating. Use method `packInteger()` to solve this.
+- `selectCb()` now also accepts `spaceId` and `indexId` as their String names, not only their IDs.
+
 ### 3.0.7
 
-Fix in header decoding to support latest Tarantool versions.
-Update to tests to support latest Tarantool versions.
+Fix in header decoding to support latest Tarantool versions. Update to tests to support latest Tarantool versions.
 
 ### 3.0.6
 
@@ -348,4 +395,7 @@ Key is now can be just a number.
 
 ## ToDo
 
-finish multihost feature
+1. Streams
+2. Events and subscriptions
+3. Graceful shutdown protocol
+4. Prepared SQL statements

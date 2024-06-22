@@ -52,6 +52,9 @@ describe('constructor', function () {
 			expect(option).to.have.property('username', 'notguest');
 			expect(option).to.have.property('password', 'sesame');
 
+			option = getOption('/var/run/tarantool/unix.sock');
+			expect(option).to.have.property('path', '/var/run/tarantool/unix.sock');
+
 			option = getOption({
 				port: 6380,
 				host: '192.168.1.1'
@@ -78,6 +81,7 @@ describe('constructor', function () {
 				{
 					port:	6380,
 					host: '192.168.1.1',
+					path: null,
 					username: null,
 					password: null
 				},
@@ -230,7 +234,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen.toString()).to.eql('33014');
+						expect(res[0].listen).to.eql('33014');
 						exec('docker kill reserve', function(error, stdout, stderr){
 							if(error){
 								done(error);
@@ -246,7 +250,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen.toString()).to.eql('33015');
+						expect(res[0].listen).to.eql('33015');
 						exec('docker kill reserve_2', function(error, stdout, stderr){
 							if(error){
 								done(error);
@@ -261,7 +265,7 @@ describe('multihost', function () {
 					conn.eval('return box.cfg')
 					.then(function(res){
 						t++;
-						expect(res[0].listen.toString()).to.eql('33013');
+						expect(res[0].listen).to.eql('33013');
 						done();
 					})
 					.catch(function(e){
@@ -355,7 +359,7 @@ describe('instant connection', function(){
 		conn = new TarantoolConnection({port: 33013, username: 'userloser', password: 'test'});
 		conn.eval('return func_foo()')
 			.catch(function (err) {
-				expect(err.message).to.include("not found");
+				expect(err.message).to.match(/User 'userloser' is not found/);
 				conn.disconnect();
 				done();
 			});
