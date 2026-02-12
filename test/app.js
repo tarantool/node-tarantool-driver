@@ -1,750 +1,607 @@
 /**
- * Created by klond on 05.04.15.
+ * Test suite for TarantoolConnection
  */
 
-/*eslint-env mocha */
-/* global Promise */
-var exec = require('child_process').exec;
-var expect = require('chai').expect;
-var sinon = require('sinon');
-var spy = sinon.spy.bind(sinon);
-var stub = sinon.stub.bind(sinon);
+const { test, describe, before, after } = require('node:test');
+const assert = require('node:assert');
+const TarantoolConnection = require('../lib/connection');
+const { states } = require('../lib/const');
+const { noop } = require('lodash');
+const {
+  setTimeout: promisedSetTimeout,
+} = require('node:timers/promises');
+let conn;
 
-var fs = require('fs');
-var assert = require('assert');
-var TarantoolConnection = require('../lib/connection');
-var SliderBuffer = require('../lib/sliderBuffer');
-var mlite = require('msgpack-lite');
-var conn;
-
-describe('constructor', function () {
-	it('should parse options correctly', function () {
-		stub(TarantoolConnection.prototype, 'connect').returns(Promise.resolve());
-		var option;
-		try {
-			option = getOption(6380);
-			expect(option).to.have.property('port', 6380);
-			expect(option).to.have.property('host', 'localhost');
-
-			option = getOption('6380');
-			expect(option).to.have.property('port', 6380);
-
-			option = getOption(6381, '192.168.1.1');
-			expect(option).to.have.property('port', 6381);
-			expect(option).to.have.property('host', '192.168.1.1');
-
-			option = getOption(6381, '192.168.1.1', {
-				password: '123',
-				username: 'userloser'
-			});
-			expect(option).to.have.property('port', 6381);
-			expect(option).to.have.property('host', '192.168.1.1');
-			expect(option).to.have.property('password', '123');
-			expect(option).to.have.property('username', 'userloser');
-
-			option = getOption('mail.ru:33013');
-			expect(option).to.have.property('port', 33013);
-			expect(option).to.have.property('host', 'mail.ru');
-
-			option = getOption('notguest:sesame@mail.ru:3301');
-			expect(option).to.have.property('port', 3301);
-			expect(option).to.have.property('host', 'mail.ru');
-			expect(option).to.have.property('username', 'notguest');
-			expect(option).to.have.property('password', 'sesame');
-
-			option = getOption('/var/run/tarantool/unix.sock');
-			expect(option).to.have.property('path', '/var/run/tarantool/unix.sock');
-
-			option = getOption({
-				port: 6380,
-				host: '192.168.1.1'
-			});
-			expect(option).to.have.property('port', 6380);
-			expect(option).to.have.property('host', '192.168.1.1');
-
-			option = getOption({
-				port: 6380,
-				host: '192.168.1.1',
-				reserveHosts: ['notguest:sesame@mail.ru:3301', 'mail.ru:3301']
-			});
-			expect(option).to.have.property('port', 6380);
-			expect(option).to.have.property('host', '192.168.1.1');
-			expect(option).to.have.property('reserveHosts');
-			expect(option.reserveHosts).to.deep.equal(['notguest:sesame@mail.ru:3301', 'mail.ru:3301']);
-			
-			option = new TarantoolConnection({
-				port: 6380,
-				host: '192.168.1.1',
-				reserveHosts: ['notguest:sesame@mail.ru:3301', 'mail.ru:3301']
-			});
-			expect(option.reserve).to.deep.include(
-				{
-					port:	6380,
-					host: '192.168.1.1',
-					path: null,
-					username: null,
-					password: null
-				},
-				{
-					port:	3301,
-					host: 'mail.ru'
-				},
-				{
-					port:	3301,
-					host: 'mail.ru',
-					username: 'notguest',
-					password: 'sesame'
-				}
-			);
-
-			option = getOption({
-				port: 6380,
-				host: '192.168.1.1'
-			});
-			expect(option).to.have.property('port', 6380);
-			expect(option).to.have.property('host', '192.168.1.1');
-
-			option = getOption({
-				port: '6380'
-			});
-			expect(option).to.have.property('port', 6380);
-
-			option = getOption(6380, {
-				host: '192.168.1.1'
-			});
-			expect(option).to.have.property('port', 6380);
-			expect(option).to.have.property('host', '192.168.1.1');
-
-			option = getOption('6380', {
-				host: '192.168.1.1'
-			});
-			expect(option).to.have.property('port', 6380);
-		} catch (err) {
-			TarantoolConnection.prototype.connect.restore();
-			throw err;
-		}
-		TarantoolConnection.prototype.connect.restore();
-			
-		function getOption() {
-			conn = TarantoolConnection.apply(null, arguments);
-			return conn.options;
-		}
-	});
-
-	it('should throw when arguments is invalid', function () {
-		expect(function () {
-			new TarantoolConnection(function () {});
-		}).to.throw(Error);
-	});
+// Global error handlers for better debugging
+process.on('unhandledRejection', (error, promise) => {
+    console.error('❌ Unhandled Rejection:', error);
 });
 
-describe('reconnecting', function () {
-	this.timeout(8000);
-	it('should pass the correct retry times', function (done) {
-		var t = 0;
-		new TarantoolConnection({
-			port: 1,
-			retryStrategy: function (times) {
-				expect(times).to.eql(++t);
-				if (times === 3) {
-					done();
-					return;
-				}
-				return 0;
-			}
-		});
-	});
-
-	it('should skip reconnecting when retryStrategy doesn\'t return a number', function (done) {
-		conn = new TarantoolConnection({
-			port: 1,
-			retryStrategy: function () {
-				process.nextTick(function () {
-					expect(conn.state).to.eql(32); // states.END == 32
-					done();
-				});
-				return null;
-			}
-		});
-	});
-
-	it('should not try to reconnect when disconnected manually', function (done) {
-		conn = new TarantoolConnection(33013, { lazyConnect: true });
-		conn.eval('return func_foo()')
-			.then(function () {
-				conn.disconnect();
-				return conn.eval('return func_foo()');
-			})
-			.catch(function (err) {
-				expect(err.message).to.match(/Connection is closed/);
-				done();
-			});
-	});
-	it('should try to reconnect and then connect eventially', function (done){
-		function timer(){
-			return conn.ping()
-				.then(function(res){
-					assert.equal(res, true);
-					done();
-				})
-				.catch(function(err){
-					done(err);
-				});
-		}
-		conn = new TarantoolConnection(33013, { lazyConnect: true });
-		conn.eval('return func_foo()')
-			.then(function () {
-				exec('docker kill tarantool', function(error, stdout, stderr){
-					if(error){
-						done(error);
-					}
-					conn.eval('return func_foo()')
-						.catch(function(err){
-							expect(err.message).to.match(/connect ECONNREFUSED/);
-						});
-					exec('docker start tarantool', function(e, stdo, stde){
-						if(error){
-							done(error);
-						}
-						setTimeout(timer, 1000);
-					});
-				});
-			});
-	});
+process.on('uncaughtException', (error) => {
+    console.error('❌ Uncaught Exception:', error);
+    process.exit(1);
 });
 
-describe('multihost', function () {
-	this.timeout(10000);
-	// after(function() {
-  //   exec('docker start tarantool');
-	// });
-	var t;
-	it('should try to connect to reserve hosts cyclically', function(done){
-		conn = new TarantoolConnection(33013, {
-			reserveHosts: ['test:test@127.0.0.1:33014', '127.0.0.1:33015'],
-			beforeReserve: 1,
-			retryStrategy: function (times) {
-        return Math.min(times * 500, 2000);
-    	}
-		});
-		t = 0;
-		conn.on('connect', function(){
-			switch (t){
-				case 1:
-					conn.eval('return box.cfg')
-					.then(function(res){
-						t++;
-						expect(res[0].listen.toString()).to.eql('33014');
-						exec('docker kill reserve', function(error, stdout, stderr){
-							if(error){
-								done(error);
-							}
-						});
-						exec('docker start tarantool');
-					})
-					.catch(function(e){
-						done(e);
-					});
-					break;
-				case 2:
-					conn.eval('return box.cfg')
-					.then(function(res){
-						t++;
-						expect(res[0].listen.toString()).to.eql('33015');
-						exec('docker kill reserve_2', function(error, stdout, stderr){
-							if(error){
-								done(error);
-							}
-						});
-					})
-					.catch(function(e){
-						done(e);
-					});
-					break;
-				case 3:
-					conn.eval('return box.cfg')
-					.then(function(res){
-						t++;
-						expect(res[0].listen.toString()).to.eql('33013');
-						done();
-					})
-					.catch(function(e){
-						done(e);
-					});
-					break;
-			}
-		});
-		conn.ping()
-			.then(function(){
-				t++;
-				exec('docker kill tarantool', function(error, stdout, stderr){
-					if(error){
-						done(error);
-					}
-				});
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
+// mainly for 'constructor' tests
+const optLazyConnect = {
+    lazyConnect: true
+};
+// load fast and save on network bandwith
+const optDontPrefetchSchema = {
+    prefetchSchema: false
+};
+
+const truncateSpace = async (conn, spaceName) => {
+    return conn.sql(`DELETE FROM "${spaceName}" INDEXED BY "tree_idx" WHERE true`);
+};
+
+describe('constructor', () => {
+    test('should parse options correctly', () => {
+        try {
+            let option;
+
+            option = getOption(33013);
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, 'localhost');
+
+            option = getOption('33013');
+            assert.strictEqual(option.port, 33013);
+
+            option = getOption(33013, '192.168.0.1');
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+
+            option = getOption(33013, '192.168.0.1', {
+                password: '123',
+                username: 'userloser'
+            });
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+            assert.strictEqual(option.password, '123');
+            assert.strictEqual(option.username, 'userloser');
+
+            option = getOption('mail.ru:33013');
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, 'mail.ru');
+
+            option = getOption('notguest:sesame@mail.ru:33013');
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, 'mail.ru');
+            assert.strictEqual(option.username, 'notguest');
+            assert.strictEqual(option.password, 'sesame');
+
+            option = getOption('/tmp/tarantool-test.sock');
+            assert.strictEqual(option.path, '/tmp/tarantool-test.sock');
+
+            option = getOption({
+                port: 33013,
+                host: '192.168.0.1'
+            });
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+
+            option = getOption({
+                port: 33013,
+                host: '192.168.0.1',
+                reserveHosts: ['notguest:sesame@mail.ru:33013', 'mail.ru:33013']
+            });
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+            assert.ok(option.reserveHosts);
+            assert.deepStrictEqual(option.reserveHosts, [
+                'notguest:sesame@mail.ru:33013',
+                'mail.ru:33013'
+            ]);
+
+            // option = new TarantoolConnection({
+            //     port: 33013,
+            //     host: '192.168.0.1',
+            //     reserveHosts: [
+            //         'notguest:sesame@mail.ru:33013',
+            //         'mail.ru:33013'
+            //     ],
+            //     ...optLazyConnect,
+            //     ...optDontPrefetchSchema
+            // });
+
+            option = getOption({
+                port: 33013,
+                host: '192.168.0.1'
+            });
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+
+            option = getOption({
+                port: '33013'
+            });
+            assert.strictEqual(option.port, 33013);
+
+            option = getOption(33013, {
+                host: '192.168.0.1'
+            });
+            assert.strictEqual(option.port, 33013);
+            assert.strictEqual(option.host, '192.168.0.1');
+
+            option = getOption('33013', {
+                host: '192.168.0.1'
+            });
+            assert.strictEqual(option.port, 33013);
+        } catch (e) {
+            console.error('Failed to parse options: ', e);
+            throw e;
+        }
+
+        function getOption(a, b, c) {
+            // don't emit process warning while connecting
+            if (typeof a == 'object') a.lazyConnect = true;
+            if (typeof b == 'object') b.lazyConnect = true;
+            if (typeof c == 'object') c.lazyConnect = true;
+            if (a === undefined) a = optLazyConnect;
+            if (b === undefined) b = optLazyConnect;
+            if (c === undefined) c = optLazyConnect;
+
+            conn = new TarantoolConnection(a, b, c);
+            return conn.options;
+        }
+    });
+
+    test('should throw when arguments are invalid', () => {
+        assert.throws(() => {
+            new TarantoolConnection(function () {});
+        }, Error);
+    });
 });
 
-describe('lazy connect', function(){
-	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013, lazyConnect: true, username: 'test', password: 'test'});
+describe('reconnecting', { timeout: 8000 }, () => {
+    test('should pass the correct retry times', async () => {
+        let t = 0;
+        let finished = false;
+        let lastError = null;
+
+        conn = new TarantoolConnection({
+            port: 1,
+            retryStrategy: (times) => {
+                try {
+                    assert.strictEqual(times, ++t);
+                    if (times === 3) {
+                        finished = true;
+                        return;
+                    }
+                    return 0;
+                } catch (err) {
+                    lastError = err;
+                    console.error('❌ retryStrategy assertion failed:', {
+                        expected: t,
+                        actual: times,
+                        message: err.message,
+                        stack: err.stack
+                    });
+                }
+            }
+        });
+
+        conn.on('error', noop); // don't emit the process warning
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        conn.disconnect();
+
+        if (lastError) {
+            console.error(
+                'Test failed with error from retryStrategy:',
+                lastError
+            );
+            throw lastError;
+        }
+
+        assert.ok(
+            finished,
+            `Expected retryStrategy to complete (finished=${finished}, t=${t})`
+        );
+    });
+
+    test("should skip reconnecting when retryStrategy doesn't return a number", async () => {
+        let finished = false;
+        let lastError = null;
+
+        conn = new TarantoolConnection({
+            port: 1,
+            ...optDontPrefetchSchema,
+            retryStrategy: () => {
+                process.nextTick(() => {
+                    try {
+                        assert.strictEqual(conn._state[0], states.END);
+                        finished = true;
+                    } catch (err) {
+                        lastError = err;
+                        console.error('❌ Assertion failed in nextTick:', {
+                            actual: conn._state[0],
+                            expected: states.END,
+                            message: err.message,
+                            stack: err.stack
+                        });
+                    }
+                });
+                return null;
+            }
+        });
+
+        conn.on('error', noop);
+
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        if (lastError) {
+            console.error('Test failed:', lastError);
+            throw lastError;
+        }
+
+        assert.ok(
+            finished,
+            `Expected state check to complete (finished=${finished}, state=${conn._state[0]})`
+        );
+
+        conn.disconnect();
+    });
+
+    test('should not try to reconnect when disconnected manually', async () => {
+        try {
+            conn = new TarantoolConnection(3301, {
+                lazyConnect: false,
+                ...optDontPrefetchSchema
+            });
+            await conn.eval('return func_arg(...)', ['test']);
+            conn.disconnect();
+
+            await assert.rejects(
+                async () => conn.eval('return func_arg(...)', ['test']),
+                { message: 'Connection is finished' }
+            );
+        } catch (err) {
+            console.error('❌ Test failed with error:', err);
+            throw err;
+        }
+    });
+
+    test('should try to reconnect and then connect eventually', async () => {
+        conn = new TarantoolConnection(3301, {
+            ...optLazyConnect,
+            ...optDontPrefetchSchema
+        });
+        await conn.connect();
+        let res = await conn.ping();
+        assert.strictEqual(res, true);
+
+        // disrupt the connection
+        // imitating network error
+        conn.connector.socket.destroy();
+
+        await assert.rejects(() => conn.eval('return func_arg()'), {
+            message: 'Socket is not writable'
+        });
+
+        // socket 'close' event may be emitted not immediately
+        await promisedSetTimeout(100);
+
+        res = await conn.ping();
+        assert.strictEqual(res, true);
+        conn.disconnect();
+    });
+});
+
+describe('multihost', { timeout: 10000 }, () => {
+    // Consider servers on port 33010 and UNIX-socket are unavailable
+    // Connector will try to find the alive one (which is on port 3301).
+    // This is a good example on how to pass 'reserveHosts' items in multiple ways
+    // and demonstrate that we can also change connection options per each host.
+    test('should try to connect to reserve hosts cyclically', async () => {
+        conn = new TarantoolConnection(33010 /* pass only port */, {
+            reserveHosts: [
+                '/tmp/inactiveInstanceExample.sock', // may pass only UNIX socket path as a string
+                {
+                    // pass object with a custom 'timeout' and credentials
+                    host: 'localhost',
+                    port: 3301,
+                    timeout: 12345,
+                    username: 'test',
+                    password: 'notStrongPass :('
+                }
+            ],
+            beforeReserve: 1,
+            ...optDontPrefetchSchema,
+            retryStrategy: (times) => {
+                return Math.min(times * 500, 2000);
+            }
+        });
+
+        conn.on('error', noop);
+
+        let t = 0;
+        const connectionPromise = new Promise((resolve) => {
+            conn.on('reconnecting', () => {
+                const opts = conn.options;
+                try {
+                    switch (t) {
+                        case 0:
+                            assert.equal(opts.port, 33010);
+                            assert.equal(opts.host, 'localhost');
+                            assert.equal(opts.path, null);
+                            assert.equal(opts.username, null);
+                            assert.equal(opts.password, null);
+                            break;
+                        case 1:
+                            assert.equal(opts.port, null);
+                            assert.equal(opts.host, null);
+                            assert.equal(
+                                opts.path,
+                                '/tmp/inactiveInstanceExample.sock'
+                            );
+                            assert.equal(opts.username, null);
+                            assert.equal(opts.password, null);
+                            break;
+                        case 2:
+                            assert.equal(opts.port, 3301);
+                            assert.equal(opts.host, 'localhost');
+                            assert.equal(opts.path, null);
+                            assert.equal(opts.username, 'test');
+                            assert.equal(opts.password, 'notStrongPass :(');
+                            assert.equal(opts.timeout, 12345);
+                            resolve();
+                            break;
+                    }
+                } catch (e) {
+                    reject(e);
+                }
+                t++;
+            });
+        });
+
+        await conn.ping();
+        return connectionPromise
+        .finally(() => conn.disconnect());
+    });
+});
+
+describe('lazy connect', () => {
+	before(() => {
+		conn = new TarantoolConnection({port: 3301, lazyConnect: true, username: 'test', password: 'notStrongPass :('});
 	});
-	it('lazy connect', function(done){
-		conn.connect()
-			.then(function(){
-				done();
-			}, function(e){
-				done(e);
-			});
+	test('lazy connect', async () => {
+		assert.strictEqual(conn._state[0], states.INITED);
+		await conn.connect();
+		assert.strictEqual(conn._state[0], states.CONNECT);
 	});
-	it('should be authenticated', function(done){
-		conn.connect().then(function(){
-			return conn.eval('return box.session.user()');
-		})
-		.then(function(res){
-			assert.equal(res[0], 'test');
-			done();
-		})
-		.catch(function(e){done(e);});
+	test('should be authenticated', async () => {
+		const res = await conn.eval('return box.session.user()');
+		assert.strictEqual(res[0], 'test');
 	});
-	it('should disconnect when inited', function(done){
+	test('should disconnect when inited', () => {
 		conn.disconnect();
-		expect(conn.state).to.eql(32); // states.END == 32
-		done();
+		assert.strictEqual(conn._state[0], states.END);
 	});
-	it('should disconnect', function(done){
-		conn.connect()
-		.then(function(res){
-			conn.disconnect();
-			assert.equal(conn.socket.writable, false);
-			done();
-		})
-		.catch(function(e){done(e);});
-	});
-});
-describe('instant connection', function(){
-	beforeEach(function(){
-		conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
-	});
-	it('connect', function(done){
-		conn.eval('return func_arg(...)', 'connected!')
-			.then(function(res){
-				try{
-					assert.equal(res, 'connected!');
-				} catch(e){console.error(e);}
-				done();
-			}, function(e){
-				done(e);
-			});
-	});
-	it('should reject when connected', function (done) {
-		conn.connect().catch(function (err) {
-			expect(err.message).to.match(/Tarantool is already connecting\/connected/);
-			done();
-		});
-  });
-	it('should be authenticated', function(done){
-		conn.eval('return box.session.user()')
-			.then(function(res){
-				assert.equal(res[0], 'test');
-				done();
-			})
-			.catch(function(e){done(e);});
-	});
-	it('should reject when auth failed', function (done) {
-		conn = new TarantoolConnection({port: 33013, username: 'userloser', password: 'test'});
-		conn.eval('return func_foo()')
-			.catch(function (err) {
-				expect(err.message).to.include("not found");
-				conn.disconnect();
-				done();
-			});
-	});
-	it('should reject command when connection is closed', function (done) {
-		conn = new TarantoolConnection();
+	test('should connect after ".disconnect()" call', async () => {
+        await promisedSetTimeout(100) // wait for the previous '.disconnect()' call to fullfill
+		await conn.connect();
 		conn.disconnect();
-		conn.eval('return func_foo()')
-			.catch(function (err) {
-				expect(err.message).to.match(/Connection is closed/);
-				done();
-			});
+		assert.strictEqual(conn._state[0], states.END);
+        const isWritable = conn.connector.isWritable();
+		assert.strictEqual(isWritable, false);
 	});
 });
 
-describe('timeout', function(){
-	it('should close the connection when timeout', function (done) {
-		conn = new TarantoolConnection(33013, '192.0.0.0', {
+describe('instant connection', () => {
+	before(() => {
+		conn = new TarantoolConnection({port: 3301, username: 'test', password: 'notStrongPass :('});
+	});
+	test('connect', async () => {
+		const res = await conn.eval('return func_arg(...)', ['connected!']);
+		assert.strictEqual(res[0], 'connected!');
+	});
+	test('should reject when connected', async () => {
+		await assert.rejects(
+			() => conn.connect(),
+			{ message: /Tarantool is already connecting\/connected/ }
+		);
+	});
+	test('should be authenticated', async () => {
+		const res = await conn.eval('return box.session.user()');
+		assert.strictEqual(res[0], 'test');
+        conn.disconnect()
+	});
+	test('should reject when auth failed', async () => {
+		conn = new TarantoolConnection({port: 3301, username: 'userloser', password: 'test'});
+        conn.on('error', noop)
+
+        await conn.pendingPromises.connect.catch(noop);
+
+		await assert.rejects(
+			() => conn.eval('return func_arg()'),
+			{ message: /Connection is closed/ }
+		);
+		conn.disconnect();
+	});
+	test('should reject command when connection is closed', async () => {
+		conn = new TarantoolConnection(3301);
+        
+        await conn.pendingPromises.connect.catch(noop);
+
+		conn.disconnect();
+
+		await assert.rejects(
+			() => conn.eval('return func_arg()'),
+			{ message: /Connection is finished/ }
+		);
+	});
+});
+
+describe('timeout', { timeout: 10000 }, () => {
+	test('should close the connection when timeout', async () => {
+		conn = new TarantoolConnection(3301, '192.0.0.0', {
 			timeout: 1,
 			retryStrategy: null
 		});
-		var pending = 2;
-    conn.on('error', function (err) {
-      expect(err.message).to.eql('connect ETIMEDOUT');
-      if (!--pending) {
-        done();
-      }
-    });
-		conn.ping()
-			.catch(function (err) {
-				expect(err.message).to.match(/Connection is closed/);
-				if (!--pending) {
-					done();
-				}
+
+		const errorPromise = new Promise((resolve) => {
+			conn.on('error', (err) => {
+				resolve(
+                    assert.strictEqual(err.message, 'connect ETIMEDOUT')
+                )
 			});
-	});
-	it('should clear the timeout when connected', function (done) {
-		conn = new TarantoolConnection(33013, { timeout: 10000 });
-		setImmediate(function () {
-			stub(conn.socket, 'setTimeout')
-				.callsFake(function (timeout) {
-					expect(timeout).to.eql(0);
-					conn.socket.setTimeout.restore();
-					done();
-				});
 		});
+
+		try {
+			await conn.ping();
+		} catch (err) {
+			assert.match(err.message, /Connection is closed/);
+		}
+
+		await errorPromise;
 	});
 });
 
+describe('requests', () => {
+	let insertTuple = [1, [1, 2]];
+	before(async () => {
+		try {
+			conn = new TarantoolConnection({port: 3301, username: 'test', password: 'notStrongPass :(', ...optLazyConnect});
 
-describe('requests', function(){
-	var insertTuple = [50, 10, 'my key', 30];
-	before(function(done){
-		console.log('before call');
-		try{
-			conn = new TarantoolConnection({port: 33013, username: 'test', password: 'test'});
-			
-			Promise.all([conn.delete(514, 0, [1]),conn.delete(514, 0, [2]),
-				conn.delete(514, 0, [3]),conn.delete(514, 0, [4]),
-				conn.delete(512, 0, [999])])
-			.then(function(){
-				return conn.call('clearaddmore');
-			})
-			.then(function(){
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-		}
-		catch(e){
-			console.log(e);
+            await truncateSpace(conn, 'bench_memtx');
+			console.info('✓ Deleted test data');
+		} catch(e) {
+			console.error('❌ Setup failed in requests.before hook:', e);
+			throw e;
 		}
 	});
-	it('replace', function(done){
-		conn.replace(512, insertTuple)
-		.then(function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}, function(e){done(e);});
+	test('insert', async () => {
+		const a = await conn.insert('bench_memtx', insertTuple);
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
-	it('simple select', function(done){
-		conn.select(512, 0, 1, 0, 'eq', [50])
-		.then(function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}, function(e){done(e);});
+	test('replace', async () => {
+		const a = await conn.replace('bench_memtx', insertTuple);
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
-	it('simple select with callback', function(done){
-		conn.selectCb(512, 0, 1, 0, 'eq', [50], function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}, function(e){done(e);});
+	test('simple select', async () => {
+		const a = await conn.select(512, 0, 1, 0, 'eq', [1]);
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
-	it('composite select', function(done){
-		conn.select(512, 1, 1, 0, 'eq', [10, 'my key'])
-		.then(function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}).catch(function(e){ done(e); });
-	});
-	it('delete', function(done){
-		conn.delete(512, 0, [50])
-		.then(function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}).catch(function(e){ done(e); });
-	});
-	it('insert', function(done){
-		conn.insert(512, insertTuple)
-		.then(function(a){
-			assert.equal(a.length, 1);
-			for (var i = 0; i<a[0].length; i++)
-				assert.equal(a[0][i], insertTuple[i]);
-			done();
-		}, function(e){done(e);});
-	});
-	it('dup error', function(done){
-		conn.insert(512, insertTuple)
-		.then(function(a){
-			done(new Error('can insert'));
-		}, function(e){
-				assert(e instanceof Error);
-				done();
-			});
-	});
-	it('update', function(done){
-		conn.update(512, 0, [50], [['+',3,10]])
-		.then(function(a){
-			assert.equal(a.length, 1);
-			assert.equal(a[0][3], insertTuple[3]+10);
-			done();
-		}).catch(function(e){ done(e); });
-	});
-	it('a lot of insert', function(done){
-		var promises = [];
-		for (var i = 0; i <= 5000; i++) {
-			promises.push(conn.insert(515, ['key' + i, i]));
-		}
-		Promise.all(promises)
-			.then(function(pr){
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-	it('check errors', function(done){
-		conn.insert(512, ['key', 'key', 'key'])
-			.then(function(){
-				done(new Error('Right when need error'));
-			})
-			.catch(function(e){
-				done();
-			});
-	});
-	it('call print', function(done){
-		conn.call('myprint', ['test'])
-			.then(function(){
-				done();
-			})
-			.catch(function(e){
-				console.log(e);
-				done(e);
-			});
-	});
-	it('call batch', function(done){
-		conn.call('batch', [[1], [2], [3]])
-			.then(function(){
-				done();
-			})
-			.catch(function(e){
-				console.log(e);
-				done(e);
-			});
-	});
-	it('call get', function(done){
-		conn.insert(514, [4])
-			.then(function() {
-				return conn.call('myget', 4);
-			})
-			.then(function(value){
-				done();
-			})
-			.catch(function(e){
-				console.log(e);
-				done(e);
-			});
-	});
-	it('get metadata space by name', function(done){
-		conn._getSpaceId('batched')
-			.then(function(v){
-				assert.equal(v, 514);
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-	it('get metadata index by name', function(done){
-		conn._getIndexId(514, 'primary')
-			.then(function(v){
-				assert.equal(v, 0);
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-	it('insert with space name', function(done){
-		conn.insert('test', [999, 999, 'fear'])
-			.then(function(v){
-				done();
-			})
-			.catch(done);
-	});
-	it('select with space name and index name', function(done){
-		conn.select('test', 'primary', 0, 0, 'all', [999])
-			.then(function(){
-				done();
-			})
-			.catch(done);
-	});
-	it('select with space name and index number', function(done){
-		conn.select('test', 0, 0, 0, 'eq', [999])
-			.then(function(){
-				done();
-			})
-			.catch(done);
-	});
-	it('select with space number and index name', function(done){
-		conn.select(512, 'primary', 0, 0, 'eq', [999])
-			.then(function(){
-				done();
-			})
-			.catch(done);
-	});
-	it('delete with name', function(done){
-		conn.delete('test', 'primary', [999])
-			.then(function(){
-				done();
-			})
-			.catch(done);
-	});
-	it('update with name', function(done){
-		conn.update('test', 'primary', [999], ['+', 1, 10])
-			.then(function(){
-				done();
-			})
-			.catch(done);
-	});
-	it('evaluate expression', function(done){
-		conn.eval('return 2+2')
-			.then(function(res){
-				assert.equal(res, 4);
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-	it('evaluate expression with args', function(done){
-		conn.eval('return func_sum(...)', 11, 22)
-			.then(function(res){
-				assert.equal(res, 33);
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-	it('ping', function(done){
-		conn.ping()
-			.then(function(res){
-				assert.equal(res, true);
-				done();
-			})
-			.catch(function(e){
-				done(e);
-			});
-	});
-});
+	test('simple select with callback', async () => {
+        return new Promise((resolve, reject) => {
+            conn.select(512, 0, 1, 0, 'eq', [1], null, (error, result) => {
+                if (error) return reject(error);
 
-
-describe('upsert', function(){
-	before(function(done){
-		try{
-			conn = new TarantoolConnection({port: 33013,lazyConnect: true});
-			conn.connect().then(function(){
-				return conn._auth('test', 'test');
-			}, function(e){ done(e); })
-				.then(function(){
-					return Promise.all([
-						conn.delete('upstest', 'primary', 1),
-						conn.delete('upstest', 'primary', 2)
-					]);
-				})
-				.then(function(){
-					done();
-				})
-				.catch(function(e){
-					done(e);
-				});
-		}
-		catch(e){
-			console.log(e);
-		}
+                try {
+                    assert.deepStrictEqual(result[0], insertTuple);
+                    resolve();
+                } catch (e) {
+                    reject(e)
+                }
+            })
+        })
 	});
-	it('insert', function(done){
-		conn.upsert('upstest', [['+', 3, 3]], [1, 2, 3])
-			.then(function() {
-				return conn.select('upstest', 'primary', 1, 0, 'eq', 1);
-			})
-			.then(function(tuples){
-				assert.equal(tuples.length, 1);
-				assert.deepEqual(tuples[0], [1, 2, 3]);
-				done();
-			})
-
-			.catch(function(e){
-				done(e);
-			});
+	test('composite select', async () => {
+		const a = await conn.select(512, 2 /* rtree idx */, null /* connector should use the default offset and limit values if omitted */, undefined, 'eq', [[1, 2]])
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
-	it('update', function(done){
-		conn.upsert('upstest', [['+', 2, 2]], [2, 4, 3])
-			.then(function(){
-				return conn.upsert('upstest', [['+', 2, 2]], [2, 4, 3]);
-			})
-			.then(function() {
-				return conn.select('upstest', 'primary', 1, 0, 'eq', 2)	;
-			})
-			.then(function(tuples){
-				assert.equal(tuples.length, 1);
-				assert.deepEqual(tuples[0], [2, 4, 5]);
-				done();
-			})
-
-			.catch(function(e){
-				done(e);
-			});
-	});
-});
-describe('connection test with custom msgpack implementation', function(){
-	var customConn;
-	beforeEach(function(){
-		customConn = TarantoolConnection(
-			{
-				port: 33013,
-				msgpack: {
-					encode: function(obj){
-						return mlite.encode(obj);
-					},
-					decode: function(buf){
-						return mlite.decode(buf);
-					}
-				},
-				lazyConnect: true,
-				username: 'test',
-				password: 'test'
-			}
+	test('dup error', async () => {
+		await assert.rejects(
+			() => conn.insert(512, insertTuple),
+			Error
 		);
 	});
-	it('connect', function(done){
-		customConn.connect().then(function(){
-			done();
-		}, function(e){ throw 'not connected'; });
+	test('update', async () => {
+        insertTuple[1] = [2, 3];
+		const a = await conn.update(512, 0, [1], [['=', 1, insertTuple[1]]]);
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
-	it('should be authenticated', function(done){
-		conn.eval('return box.session.user()')
-			.then(function(res){
-				assert.equal(res[0], 'test');
-				done();
-			})
-			.catch(function(e){done(e);});
+	test('update with field as string', async () => {
+        insertTuple[1] = [3, 4];
+		const a = await conn.update(512, 0, [1], [['=', 'line', insertTuple[1]]]);
+        assert.deepStrictEqual(a[0], insertTuple);
 	});
+    // https://www.tarantool.io/en/doc/latest/reference/reference_lua/json_paths/
+	test('update inside of an array', async () => {
+        insertTuple[1][0]++;
+		const a = await conn.update(512, 0, [1], [['+', 'line[1]', 1]]);
+        assert.deepStrictEqual(a[0], insertTuple);
+	});
+	test('delete', async () => {
+		const a = await conn.delete(512, 0, [1]);
+        assert.deepStrictEqual(a[0], insertTuple);
+	});
+	test('a lot of insert', async () => {
+		const promises = [];
+		for (let i = 1; i <= 5000; i++) {
+			promises.push(conn.insert(512, [i, [i, i+1]]));
+		}
+		return Promise.all(promises);
+	});
+	test('check errors', async () => {
+		await assert.rejects(
+			() => conn.insert(512, ['key', 'key', 'key'])
+		);
+	});
+	test('call print', async () => {
+		const a = await conn.call('func_arg', ['test']);
+		assert.strictEqual(a[0][0], 'test');
+	});
+	test('call sum', async () => {
+		const a = await conn.call('sum', [1, 2]).catch(console.error);
+		assert.strictEqual(a[0][0], 3);
+	});
+	test('get metadata space by name', async () => {
+		const v = await conn._getSpaceId('bench_memtx');
+		assert.strictEqual(v, 512);
+	});
+	test('get metadata index by name', async () => {
+		const v = await conn._getIndexId(512, 'tree_idx');
+		assert.strictEqual(v, 1);
+	});
+	test('insert with space name', async () => {
+        insertTuple = [0, [0, 1]];
+		await conn.insert('bench_memtx', insertTuple);
+	});
+	test('select with space name and index name', async () => {
+		const a = await conn.select('bench_memtx', 'hash_idx', 0, 0, 'eq', [0]);
+        assert.deepStrictEqual(a[0], insertTuple)
+	});
+	test('select with space name and index number', async () => {
+		const a = await conn.select('bench_memtx', 1, 0, 0, 'eq', [0]);
+        assert.deepStrictEqual(a[0], insertTuple)
+	});
+	test('select with space number and index name', async () => {
+		const a = await conn.select(512, 'hash_idx', 0, 0, 'eq', [0]);
+        assert.deepStrictEqual(a[0], insertTuple)
+	});
+    test('upsert', async () => {
+        // should update the tuple because it exists
+        insertTuple[1] = [1, 1]
+		await conn.upsert('bench_memtx', [['=', 1, insertTuple[1]]], insertTuple);
+        const a = await conn.select('bench_memtx', 1, 0, 0, 'eq', [0]);
+		assert.deepStrictEqual(a[0], insertTuple);
+
+        // should insert a new tuple because it doesn't exist
+        const newArr = [5001, [1, 1]];
+		await conn.upsert('bench_memtx', [['=', 1, [0, 0]]], newArr);
+        const b = await conn.select('bench_memtx', 1, 0, 0, 'eq', [5001]);
+		assert.deepStrictEqual(b[0], newArr);
+	});
+	test('delete with name', async () => {
+		const a = await conn.delete('bench_memtx', 'hash_idx', [0]);
+        assert.deepStrictEqual(a[0], insertTuple);
+	});
+	test('evaluate expression', async () => {
+		const res = await conn.eval('return 2+2');
+		assert.strictEqual(res[0], 4);
+	});
+	test('evaluate expression with args', async () => {
+		const res = await conn.eval('return sum(...)', [11, 22]);
+		assert.strictEqual(res[0], 33);
+	});
+	test('ping', async () => {
+		const res = await conn.ping();
+		assert.strictEqual(res, true);
+	});
+
+    after(async () => {
+        return conn.quit()
+    })
 });
-describe('slider buffer', function(){
-})

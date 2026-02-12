@@ -1,9 +1,0 @@
-coverage
-node_modules/
-node_modules/*
-.idea/
-.idea/*
-*.snap
-*.xlog
-
-npm-debug.log

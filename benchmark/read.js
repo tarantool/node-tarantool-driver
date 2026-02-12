@@ -1,127 +1,202 @@
-/* global Promise */
 'use strict';
+const { Bench } = require('tinybench');
+const Driver = require('../lib/connection.js');
+const conn = new Driver('localhost:3301', {
+    lazyConnect: true
+});
+const connUnixPath = new Driver('/tmp/tarantoolTest.sock', {
+    lazyConnect: true
+});
+const {format} = require('node:util');
 
-var exec = require('child_process').exec;
-var Benchmark = require('benchmark');
-var suite = new Benchmark.Suite();
-var Driver = require('../lib/connection.js');
-var promises;
+const bench = new Bench({
+    name: 'read benchmark',
+    iterations: 10000,
+    setup: (task) => {
+        console.info(
+            format('starting task "%s"', task.name)
+        );
+    },
+    warmup: false,
+    threshold: 1,
+    concurrency: null
+});
 
-var conn = new Driver(process.argv[process.argv.length - 1], {lazyConnect: true});
+bench.addEventListener('cycle', (evt) => {
+    const result = evt.task.result;
+    if (result.state != 'completed') return;
 
-conn.connect()
-	.then(function(){
-		suite.add('select cb', {defer: true, fn: function(defer){
-			function callback(){
-				defer.resolve();
-			}
-			conn.selectCb('counter', 0, 1, 0, 'eq', ['test'], callback, console.error);
-		}});
+    console.info(`\x1b[36mCompleted task\x1b[0m "${evt.task.name}":`);
+    console.info(`  Latency: ${result.latency.mean.toFixed(5)} ms (min: ${result.latency.min.toFixed(5)}, max: ${result.latency.max.toFixed(5)})`);
+    console.info(`  Throughput: ${Math.floor(result.throughput.mean)} ops/s`);
+});
 
-		suite.add('select promise', {defer: true, fn: function(defer){
-			conn.select('counter', 0, 1, 0, 'eq', ['test'])
-				.then(function(){ defer.resolve();});
-		}});
+let counter = 0;
+let preparedStmt;
+const sqlStmt = `SELECT * FROM "bench_memtx" INDEXED BY "tree_idx" WHERE "id" = ?`;
+const pipelinedTaskName = '[pipeline] - non-deferred pipelined select by 20; HASH index';
 
-		suite.add('paralell 500', {defer: true, fn: function(defer){
-			try{
-				promises = [];
-				for (let l=0;l<500;l++){
-					promises.push(conn.select('counter', 0, 1, 0, 'eq', ['test']));
-				}
-				var chain = Promise.all(promises);
-				chain.then(function(){ defer.resolve(); })
-					.catch(function(e){
-						console.error(e, e.stack);
-						defer.reject(e);
-					});
-			} catch(e){
-				defer.reject(e);
-				console.error(e, e.stack);
-			}
-		}});
+/**
+ * Resets the counter variable
+ */
+const resetCounter = () => {
+    counter = 0;
+};
 
-		suite.add('paralel by 10', {defer: true, fn: function(defer){
-			var chain = Promise.resolve();
-			try{
-				for (var i=0;i<50;i++)
-				{
-					chain = chain.then(function(){
-						promises = [];
-						for (var l=0;l<10;l++){
-							promises.push(
-								conn.select('counter', 0, 1, 0, 'eq', ['test'])
-							);
-						}
-						return Promise.all(promises);
-					});
-				}
+Promise.all([
+    conn.connect(),
+    connUnixPath.connect()
+])
+    .then(() => {
+        bench
+            // memtx
+            .add(
+                '[memtx] - select; HASH index',
+                () => {
+                    return conn.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+                },
+                {
+                    async: true,
+                    afterAll: resetCounter
+                }
+            )
+            .add(
+                '[memtx] - select; HASH index; UNIX-path socket',
+                () => {
+                    return connUnixPath.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+                },
+                {
+                    async: true,
+                    afterAll: resetCounter
+                }
+            )
+            .add('[memtx] - non-deferred select; HASH index', () => {
+                conn.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: false,
+                afterAll: resetCounter
+            })
+            .add('[memtx] - non-deferred select; HASH index; UNIX-path socket', () => {
+                connUnixPath.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: false,
+                afterAll: resetCounter
+            })
+            .add('[memtx] - non-deferred select; HASH index; UNIX-path socket; using "commandTimeout" option', () => {
+                connUnixPath.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: false,
+                beforeAll: () => connUnixPath.options.commandTimeout = 10000,
+                afterAll: () => {
+                    connUnixPath.options.commandTimeout = null;
+                    resetCounter();
+                }
+            })
+            .add(
+                '[memtx] - select; TREE index',
+                () => {
+                    return conn.select('bench_memtx', 'tree_idx', 1, 0, 'eq', [counter++]);
+                },
+                {
+                    async: true,
+                    afterAll: resetCounter
+                }
+            )
+            .add(
+                '[memtx] - select; RTREE index',
+                () => {
+                    const prevC = counter;
+                    counter++;
+                    const nextC = counter;
+                    return conn.select('bench_memtx', 'rtree_idx', 1, 0, 'ge', [prevC, nextC]);
+                },
+                {
+                    async: true,
+                    afterAll: resetCounter
+                }
+            )
 
-				chain.then(function(){ defer.resolve(); })
-					.catch(function(e){
-						console.error(e, e.stack);
-					});
-			} catch(e){
-				console.error(e, e.stack);
-			}
-		}});
+            // vinyl
+            .add('[vinyl] - select; TREE index', () => {
+                return conn.select('bench_vinyl', 'tree_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: true,
+                afterAll: resetCounter
+            })
+            .add('[vinyl] - non-deferred select; TREE index', () => {
+                conn.select('bench_vinyl', 'tree_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: false,
+                afterAll: resetCounter
+            })
 
-		suite.add('paralel by 50', {defer: true, fn: function(defer){
-			var chain = Promise.resolve();
-			try{
-				for (var i=0;i<10;i++)
-				{
-					chain = chain.then(function(){
-						promises = [];
-						for (var l=0;l<50;l++){
-							promises.push(
-								conn.select('counter', 0, 1, 0, 'eq', ['test'])
-							);
-						}
-						return Promise.all(promises);
-					});
-				}
+            // SQL
+            // .add(`[SQL] - select; TREE index (memtx)`, () => {
+            //     return conn.sql(sqlStmt, [counter++]);
+            // }, {
+            //     async: true,
+            //     afterAll: resetCounter
+            // })
+            .add(`[SQL] - non-deferred select; TREE index (memtx)`, () => {
+                conn.sql(sqlStmt, [counter++]);
+            }, {
+                async: false,
+                afterAll: resetCounter
+            })
+            .add(`[SQL] - non-deferred prepared select; TREE index (memtx)`, () => {
+                conn.sql(preparedStmt, [counter++]);
+            }, {
+                async: false,
+                beforeAll: async () => {
+                    preparedStmt = await conn.prepare(sqlStmt);
+                },
+                afterAll: resetCounter
+            })
 
-				chain.then(function(){ defer.resolve(); })
-					.catch(function(e){
-						console.error(e, e.stack);
-					});
-			} catch(e){
-				console.error(e, e.stack);
-			}
-		}});
+            // pipeline
+            const pipelinedConn = conn.pipeline(); // it is possible to create the pipelined instance only once and reuse it in future
+            bench
+            .add('[pipeline] - non-deferred autopipelined select; HASH index', () => {
+                conn.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+            }, {
+                async: false,
+                beforeAll: () => conn.options.enableAutoPipelining = true,
+                afterAll: () => conn.options.enableAutoPipelining = false
+            })
+            .add(pipelinedTaskName, () => {
+                for (let i = 0; i < 20; i++) {
+                    pipelinedConn.select('bench_memtx', 'hash_idx', 1, 0, 'eq', [counter++]);
+                }
+                pipelinedConn.exec();
+            }, {
+                async: false,
+                afterAll: resetCounter
+            });
 
-		suite.add('pipelined select by 10', {defer: true, fn: function(defer){
-			var pipelinedConn = conn.pipeline()
-			
-			for (var i=0;i<10;i++) {
-				pipelinedConn.select('counter', 0, 1, 0, 'eq', ['test']);
-			}
+        return bench.run();
+    })
+    .then(() => {
+        // pipelined benchmark measures loops by default, but we need to count exact 'insert' requests
+        const task = bench.getTask(pipelinedTaskName);
+        if (task?.result?.state == 'completed') {
+            const throughput = task.result.throughput;
+            throughput.min = throughput.min * 20;
+            throughput.mean = throughput.mean * 20;
+            throughput.max = throughput.max * 20;
+            throughput.p50 = throughput.p50 * 20;
+        }
 
-			pipelinedConn.exec()
-			.then(function(){ defer.resolve(); })
-			.catch(function(e){ defer.reject(e); });
-		}});
+        console.info(`Benchmark "${bench.name}" finished, results: `)
+        console.table(bench.table());
 
-		suite.add('pipelined select by 50', {defer: true, fn: function(defer){
-			var pipelinedConn = conn.pipeline()
-			
-			for (var i=0;i<50;i++) {
-				pipelinedConn.select('counter', 0, 1, 0, 'eq', ['test']);
-			}
-
-			pipelinedConn.exec()
-			.then(function(){ defer.resolve(); })
-			.catch(function(e){ defer.reject(e); });
-		}});
-
-		suite
-			.on('cycle', function(event) {
-				console.log(String(event.target));
-			})
-			.on('complete', function() {
-				console.log('complete');
-				process.exit();
-			})
-			.run({ 'async': true, 'queued': true });
-	});
+        return Promise.all([
+            conn.quit(),
+            connUnixPath.quit()
+        ])
+    })
+    .catch(function (e) {
+        console.error('bench failed: ', e);
+    })
+    .finally(async () => {
+        process.exit();
+    });

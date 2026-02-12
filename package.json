@@ -1,11 +1,11 @@
 {
   "name": "tarantool-driver",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "Tarantool driver for 1.7+",
   "main": "index.js",
   "scripts": {
     "lint": "eslint ./lib ./test",
-    "test": "istanbul cover --report lcov _mocha",
+    "test": "echo 'Make sure you started the \"assets/box.lua\" instance first!' && node test/commander && node test/msgpack_extensions && node test/app && node test/autopipeline && node test/pipeline && node test/transaction",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "benchmark-read": "node benchmark/read",
     "benchmark-write": "node benchmark/write"
@@ -27,32 +27,29 @@
     "in-memory storage",
     "in memory database",
     "in-memory database",
-    "database"
+    "database",
+    "client",
+    "connector"
   ],
   "author": "KlonD90",
+  "contributors": [
+    "goodwise (https://github.com/goodwise)"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/tarantool/node-tarantool-driver/issues"
   },
   "homepage": "https://github.com/tarantool/node-tarantool-driver",
   "dependencies": {
-    "debug": "^2.6.8",
-    "denque": "^1.2.1",
-    "int64-buffer": "^1.0.1",
-    "lodash": "^4.17.4",
-    "msgpack-lite": "^0.1.20",
-    "uuid": "^9.0.0"
+    "debug": "^4.4.3",
+    "lodash": "^4.17.23",
+    "uuid": "^13.0.0",
+    "msgpackr": "^1.11.8"
   },
   "devDependencies": {
-    "benchmark": "^2.1.4",
-    "chai": "^4.1.0",
-    "coveralls": "^2.13.3",
-    "eslint": "^2.5.3",
-    "ioredis": "^3.1.2",
-    "istanbul": "^0.4.5",
-    "mocha": "^2.2.4",
-    "nanotimer": "^0.3.14",
-    "nyc": "^15.1.0",
-    "sinon": "^3.0.0"
+    "tinybench": "^6.0.0",
+    "coveralls": "^3.1.1",
+    "eslint": "^10.0.0",
+    "@eslint/js": "^10.0.1"
   }
 }
